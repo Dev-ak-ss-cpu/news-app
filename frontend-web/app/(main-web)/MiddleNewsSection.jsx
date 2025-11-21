@@ -1,7 +1,7 @@
 import { Card, CardBody } from '@heroui/react';
 import { Play, Calendar, MapPin } from 'lucide-react';
-import NewsCard from './NavCard';
-import CategoryCard from './Category';
+import NewsCard from '../Components/NavCard';
+import CategoryCard from '../Components/Category';
 
 export default function MiddleNewsSection() {
     // Sample news data
@@ -24,7 +24,7 @@ export default function MiddleNewsSection() {
         <div className="space-y-8 pb-8">
             {/* 1st Big Banner Image */}
             <Card className="bg-white border border-gray-200 shadow-lg overflow-hidden">
-                <div className="aspect-[16/9] bg-gray-200 relative">
+                <div className="aspect-9/9 bg-gray-200 relative">
                     <img
                         src="https://images.unsplash.com/photo-1588666309990-d68f08e3d4a6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80"
                         alt="Breaking News"

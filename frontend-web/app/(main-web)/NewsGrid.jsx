@@ -1,4 +1,4 @@
-import NewsCard from "./NavCard";
+import NewsCard from "../Components/NavCard";
 
 export default function NewsGrid() {
     const newsItems = [

@@ -1,10 +1,10 @@
 "use client";
-import Header from './(main-web)/Header';
+import Header from './Components/Header';
 import HeroSection from './(main-web)/HeroSection';
 import SectionHeader from './(main-web)/SectionHeader';
 import NewsGrid from './(main-web)/NewsGrid';
-import Footer from './(main-web)/Footer';
-import Layout from './(main-web)/layout';
+import Footer from './Components/Footer';
+import Layout from './(main-web)/HomeLayout';
 import { Button, Calendar, HeroUIProvider } from "@heroui/react";
 
 export default function Page() {
