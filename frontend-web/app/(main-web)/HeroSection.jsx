@@ -13,10 +13,10 @@ export default function HeroSection() {
         <div className="bg-gray-50 py-6">
             <div className="container mx-auto px-4">
                 {/* Breaking News Badge */}
-                <div className="flex items-center mb-4">
+                {/* <div className="flex items-center mb-4">
                     <span className="bg-red-600 text-white px-3 py-1 text-sm font-bold rounded">ब्रेकिंग न्यूज़</span>
                     <span className="ml-4 text-lg font-bold text-gray-800">आज की बड़ी खबरें</span>
-                </div>
+                </div> */}
 
                 {/* Main Hero Card */}
                 <Card className="bg-white shadow-lg border border-gray-200">

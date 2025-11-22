@@ -2,6 +2,7 @@ import { Card, CardBody } from '@heroui/react';
 import { Play, Calendar, MapPin } from 'lucide-react';
 import NewsCard from '../Components/NavCard';
 import CategoryCard from '../Components/Category';
+import HeroSection from './HeroSection';
 
 export default function MiddleNewsSection() {
     // Sample news data
@@ -150,6 +151,10 @@ export default function MiddleNewsSection() {
                     />
                 ))}
             </div>
+            <HeroSection/>
+            <HeroSection/>
+            <HeroSection/>
+            <HeroSection/>
         </div>
     );
 }
