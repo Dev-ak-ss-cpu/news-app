@@ -32,65 +32,45 @@ import {
     Play,
     Tag,
     Youtube,
-    X
+    X,
+    Star,
+    ArrowUpCircle,
+    ListTree,
+    PenSquare
 } from 'lucide-react';
+import { getYouTubeId, getYouTubeThumbnail, genericGetApi, genericPostApi } from '@/app/Helper';
 
 // Dynamically import ReactQuill to avoid SSR issues
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
-// Mock API functions
-const mockApi = {
-    getCategories: () => Promise.resolve([
-        { id: 1, name: 'Politics', hasSubcategories: false },
-        { id: 2, name: 'Technology', hasSubcategories: false },
-        { id: 3, name: 'Sports', hasSubcategories: false },
-        { id: 4, name: 'Country', hasSubcategories: true },
-        { id: 5, name: 'Business', hasSubcategories: false },
-        { id: 6, name: 'Entertainment', hasSubcategories: false }
-    ]),
-
-    getDistricts: (countryId) => Promise.resolve([
-        { id: 1, name: 'Kathmandu' },
-        { id: 2, name: 'Lalitpur' },
-        { id: 3, name: 'Bhaktapur' },
-        { id: 4, name: 'Pokhara' },
-        { id: 5, name: 'Biratnagar' },
-        { id: 6, name: 'Birgunj' },
-        { id: 7, name: 'Butwal' },
-        { id: 8, name: 'Dharan' }
-    ])
-};
-
-// Helper function to extract YouTube video ID
-const getYouTubeId = (url) => {
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[7].length === 11) ? match[7] : null;
-};
-
 export default function ArticleEditor({ articleId = null }) {
     const { isOpen: isPreviewOpen, onOpen: onPreviewOpen, onOpenChange: onPreviewOpenChange } = useDisclosure();
-    const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onOpenChange: onImageModalOpenChange } = useDisclosure();
     const { isOpen: isVideoModalOpen, onOpen: onVideoModalOpen, onOpenChange: onVideoModalOpenChange } = useDisclosure();
 
     const [categories, setCategories] = useState([]);
-    const [districts, setDistricts] = useState([]);
+    const [categoryLevels, setCategoryLevels] = useState([]); // Array of arrays: [[level0], [level1], [level2], ...]
+    const [categoryPath, setCategoryPath] = useState([]); // Array of selected category IDs: [cat1Id, cat2Id, cat3Id]
     const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [youtubeUrl, setYoutubeUrl] = useState('');
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
     const [article, setArticle] = useState({
         title: '',
         content: '',
         excerpt: '',
         category: '',
-        subCategory: '',
         tags: [],
         featuredImage: '',
         youtubeVideo: '',
         status: 'draft',
         isBreaking: false,
         isTrending: false,
+        isFeatured: false,
+        isTopStory: false,
+        isSubStory: false,
+        isEditorsPick: false,
         metaTitle: '',
         metaDescription: '',
         publishDate: new Date().toISOString().split('T')[0],
@@ -142,8 +122,12 @@ export default function ArticleEditor({ articleId = null }) {
 
     const loadCategories = async () => {
         try {
-            const data = await mockApi.getCategories();
-            setCategories(data);
+            const response = await genericGetApi("/api/categories", { level: 0 });
+            if (response.success) {
+                setCategories(response.data);
+                // Initialize first level
+                setCategoryLevels([response.data]);
+            }
         } catch (error) {
             console.error('Failed to load categories:', error);
         }
@@ -151,44 +135,146 @@ export default function ArticleEditor({ articleId = null }) {
 
     const loadArticle = async () => {
         setLoading(true);
-        setTimeout(() => {
-            setArticle({
-                title: 'Sample Article Title for Editing',
-                content: '<h2>Introduction</h2><p>This is the main content of the article with <strong>rich text formatting</strong>. You can add <em>italic text</em>, <u>underlined text</u>, and much more!</p><h3>Key Points</h3><ul><li>Point number one</li><li>Point number two</li><li>Point number three</li></ul><p>You can also add <a href="https://example.com">links</a> and format your content professionally.</p>',
-                excerpt: 'This is a brief excerpt of the article that will be shown in previews.',
-                category: '4',
-                subCategory: '1',
-                tags: ['News', 'Update', 'Local'],
-                featuredImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-                youtubeVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-                status: 'draft',
-                isBreaking: true,
-                isTrending: false,
-                metaTitle: 'Sample Meta Title',
-                metaDescription: 'Sample meta description for SEO',
-                publishDate: '2024-01-16',
-                author: 'John Doe'
-            });
+        try {
+            // TODO: Replace with actual API call
+            // const response = await genericGetApi(`/api/articles/${articleId}`);
+            // if (response.success) {
+            //     const articleData = response.data;
+            //     setArticle(articleData);
+            //     // Load category path if article has category
+            //     if (articleData.category) {
+            //         await loadCategoryPath(articleData.category);
+            //     }
+            // }
+            
+            // Mock data for now
+            setTimeout(() => {
+                setArticle({
+                    title: 'Sample Article Title for Editing',
+                    content: '<h2>Introduction</h2><p>This is the main content of the article.</p>',
+                    excerpt: 'This is a brief excerpt of the article.',
+                    category: '',
+                    tags: ['News', 'Update', 'Local'],
+                    featuredImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3',
+                    youtubeVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                    status: 'draft',
+                    isBreaking: true,
+                    isTrending: false,
+                    isFeatured: false,
+                    isTopStory: false,
+                    isSubStory: false,
+                    isEditorsPick: false,
+                    metaTitle: 'Sample Meta Title',
+                    metaDescription: 'Sample meta description for SEO',
+                    publishDate: '2024-01-16',
+                    author: 'John Doe'
+                });
+                setLoading(false);
+            }, 1000);
+        } catch (error) {
+            console.error('Failed to load article:', error);
             setLoading(false);
-        }, 1000);
-    };
-
-    const loadDistricts = async (categoryId) => {
-        if (categoryId === '4') {
-            try {
-                const data = await mockApi.getDistricts(categoryId);
-                setDistricts(data);
-            } catch (error) {
-                console.error('Failed to load districts:', error);
-            }
-        } else {
-            setDistricts([]);
         }
     };
 
-    const handleCategoryChange = (value) => {
-        setArticle({ ...article, category: value, subCategory: '' });
-        loadDistricts(value);
+    // Load full category path from root to selected category
+    const loadCategoryPath = async (finalCategoryId) => {
+        try {
+            // Get the final category
+            const finalCategoryResponse = await genericGetApi(`/api/categories/${finalCategoryId}`);
+            if (!finalCategoryResponse.success) return;
+
+            const path = [];
+            const levels = [];
+            let currentCategory = finalCategoryResponse.data;
+
+            // Build path from leaf to root
+            while (currentCategory) {
+                path.unshift(currentCategory._id);
+                // Get siblings at this level
+                const parentId = currentCategory.parent || null;
+                const siblingsResponse = await genericGetApi("/api/categories", { 
+                    parent: parentId || "null" 
+                });
+                if (siblingsResponse.success) {
+                    levels.unshift(siblingsResponse.data);
+                }
+                // Move to parent
+                if (parentId) {
+                    const parentResponse = await genericGetApi(`/api/categories/${parentId}`);
+                    if (parentResponse.success) {
+                        currentCategory = parentResponse.data;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            setCategoryPath(path);
+            setCategoryLevels(levels);
+            setArticle(prev => ({ ...prev, category: finalCategoryId }));
+        } catch (error) {
+            console.error('Failed to load category path:', error);
+        }
+    };
+
+    // Load children for a category at a specific level
+    const loadCategoryChildren = async (parentId, levelIndex) => {
+        if (!parentId) {
+            return [];
+        }
+
+        try {
+            const response = await genericGetApi("/api/categories", {
+                parent: parentId
+            });
+
+            if (response.success && response.data.length > 0) {
+                return response.data;
+            }
+            return [];
+        } catch (error) {
+            console.error(`Failed to load category children at level ${levelIndex}:`, error);
+            return [];
+        }
+    };
+
+    // Handle category selection at any level
+    const handleCategoryLevelChange = async (levelIndex, selectedCategoryId) => {
+        // Find the selected category
+        const selectedCategory = categoryLevels[levelIndex]?.find(
+            cat => cat._id === selectedCategoryId || cat._id?.toString() === selectedCategoryId?.toString()
+        );
+
+        if (!selectedCategory) return;
+
+        // Update category path - keep up to current level, then add new selection
+        const newPath = [...categoryPath.slice(0, levelIndex), selectedCategoryId];
+        setCategoryPath(newPath);
+
+        // Update article state - store the final selected category (deepest level)
+        const finalCategoryId = selectedCategoryId;
+        setArticle(prev => ({
+            ...prev,
+            category: finalCategoryId
+        }));
+
+        // Load children for the selected category
+        const children = await loadCategoryChildren(selectedCategory._id, levelIndex + 1);
+
+        // Update category levels - keep up to current level, add children if they exist
+        const newLevels = [...categoryLevels.slice(0, levelIndex + 1)];
+        if (children.length > 0) {
+            newLevels.push(children);
+        } else {
+            // Remove any levels beyond this one if no children
+            setCategoryLevels(newLevels);
+            return;
+        }
+
+        setCategoryLevels(newLevels);
     };
 
     const handleInputChange = (field, value) => {
@@ -219,12 +305,17 @@ export default function ArticleEditor({ articleId = null }) {
         }
     };
 
-    const handleImageUpload = () => {
-        if (imageUrl) {
-            setArticle({ ...article, featuredImage: imageUrl });
-            setImageUrl('');
-            onImageModalOpenChange();
-        }
+    const handleImagePreview = (file) => {
+        if (!file || !file.type.startsWith("image/")) return;
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setArticle(prev => ({
+                ...prev,
+                featuredImage: reader.result
+            }));
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleVideoUpload = () => {
@@ -240,20 +331,91 @@ export default function ArticleEditor({ articleId = null }) {
         }
     };
 
-    const getYouTubeThumbnail = (url) => {
-        const videoId = getYouTubeId(url);
-        return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : '';
+    const handleSave = async (status = 'draft') => {
+        // Validation
+        if (!article.title || !article.content) {
+            alert('Please fill in title and content');
+            return;
+        }
+
+        if (!article.category) {
+            alert('Please select a category');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const articleToSave = {
+                title: article.title,
+                excerpt: article.excerpt,
+                content: article.content,
+                category: article.category, // Final selected category ID
+                featuredImage: article.featuredImage,
+                youtubeVideo: article.youtubeVideo,
+                tags: article.tags,
+                author: article.author,
+                status: status,
+                isBreaking: article.isBreaking,
+                isTrending: article.isTrending,
+                isFeatured: article.isFeatured,
+                isTopStory: article.isTopStory,
+                isSubStory: article.isSubStory,
+                isEditorsPick: article.isEditorsPick,
+                metaTitle: article.metaTitle,
+                metaDescription: article.metaDescription,
+                publishDate: article.publishDate
+            };
+
+            let response;
+            if (articleId) {
+                // Update existing article
+                response = await genericPostApi(`/api/articles/${articleId}`, articleToSave);
+            } else {
+                // Create new article
+                response = await genericPostApi("/api/articles", articleToSave);
+            }
+
+            if (response.success) {
+                alert(`Article ${status === 'draft' ? 'saved as draft' : 'published'} successfully!`);
+                // Optionally redirect or reset form
+                if (!articleId && status === 'published') {
+                    // Reset form after successful publish
+                    setArticle({
+                        title: '',
+                        content: '',
+                        excerpt: '',
+                        category: '',
+                        tags: [],
+                        featuredImage: '',
+                        youtubeVideo: '',
+                        status: 'draft',
+                        isBreaking: false,
+                        isTrending: false,
+                        isFeatured: false,
+                        isTopStory: false,
+                        isSubStory: false,
+                        isEditorsPick: false,
+                        metaTitle: '',
+                        metaDescription: '',
+                        publishDate: new Date().toISOString().split('T')[0],
+                        author: 'Current User'
+                    });
+                    setCategoryPath([]);
+                    setCategoryLevels([categories]);
+                }
+            } else {
+                alert(response.message || 'Failed to save article');
+            }
+        } catch (error) {
+            console.error('Error saving article:', error);
+            alert('An error occurred while saving the article');
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const handleSave = (status = 'draft') => {
-        const articleToSave = { ...article, status };
-        console.log('Saving article:', articleToSave);
-        alert(`Article ${status === 'draft' ? 'saved as draft' : 'published'} successfully!`);
-    };
-
-    const selectedCategory = categories.find(cat => cat.id.toString() === article.category);
-    const showSubCategory = selectedCategory?.hasSubcategories;
     const youtubeThumbnail = article.youtubeVideo ? getYouTubeThumbnail(article.youtubeVideo) : '';
+    const videoId = article.youtubeVideo ? getYouTubeId(article.youtubeVideo) : '';
 
     if (loading) {
         return (
@@ -315,6 +477,8 @@ export default function ArticleEditor({ articleId = null }) {
                         startContent={<Save size={18} />}
                         onPress={() => handleSave('draft')}
                         className="border-gray-300"
+                        isLoading={saving}
+                        isDisabled={saving}
                     >
                         Save Draft
                     </Button>
@@ -323,6 +487,8 @@ export default function ArticleEditor({ articleId = null }) {
                         startContent={<Send size={18} />}
                         onPress={() => handleSave('published')}
                         className="bg-black text-white hover:bg-gray-800"
+                        isLoading={saving}
+                        isDisabled={saving}
                     >
                         Publish Article
                     </Button>
@@ -370,71 +536,111 @@ export default function ArticleEditor({ articleId = null }) {
                         </CardBody>
                     </Card>
 
-                    <div className="flex gap-6">
+                    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
                         {/* Featured Image */}
-                        <Card className="flex-1 h-96 bg-white border border-gray-200 shadow-sm">
+                        <Card className="flex-1  xl:min-h-96 xl:h-145 bg-white border border-gray-200 shadow-sm">
                             <CardHeader>
                                 <h3 className="text-lg font-semibold text-black">Featured Image</h3>
                             </CardHeader>
                             <CardBody className="overflow-y-auto">
-                                {article.featuredImage ? (
-                                    <div className="space-y-4">
-                                        <img
-                                            src={article.featuredImage}
-                                            alt="Featured"
-                                            className="w-full h-48 object-cover rounded-lg"
-                                        />
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="bordered"
-                                                startContent={<Upload size={16} />}
-                                                onPress={onImageModalOpen}
-                                                className="border-gray-300"
+
+                                {/* Hidden input */}
+                                <input
+                                    id="featured-image-input"
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleImagePreview(e.target.files?.[0])}
+                                />
+
+                                {/* Upload Area */}
+                                <div
+                                    className={`border-2 border-zinc-300 bg-zinc-50 border-dashed rounded-lg p-4 h-full flex flex-col justify-center items-center text-center transition relative cursor-pointer hover:border-gray-400`}
+                                    onClick={() => {
+                                        if (!article.featuredImage) {
+                                            document.getElementById("featured-image-input").click();
+                                        }
+                                    }}
+
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        handleImagePreview(e.dataTransfer.files?.[0]);
+                                    }}
+                                >
+                                    {article.featuredImage ? (
+                                        <div className="relative w-full">
+                                            <img
+                                                src={article.featuredImage}
+                                                alt="Featured"
+                                                className="w-full h-110 object-cover rounded-lg"
+                                            />
+
+                                            <button
+                                                type="button"
+                                                className="absolute top-2 right-2 bg-red-600 text-white border-2 border-white rounded-full p-1 shadow hover:bg-red-700 transition"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleInputChange("featuredImage", "");
+                                                }}
                                             >
-                                                Change Image
-                                            </Button>
-                                            <Button
-                                                variant="light"
-                                                color="danger"
-                                                onPress={() => handleInputChange("featuredImage", "")}
-                                            >
-                                                Remove
-                                            </Button>
+                                                <X size={14} />
+                                            </button>
+
+                                            <p className="text-gray-600 mt-3">
+                                                Drag & drop to replace
+                                            </p>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div
-                                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors h-full flex flex-col justify-center"
-                                        onClick={onImageModalOpen}
-                                    >
-                                        <Upload className="mx-auto text-gray-400 mb-2" size={24} />
-                                        <p className="text-gray-600">Click to upload featured image</p>
-                                        <p className="text-sm text-gray-500">Recommended size: 1200x600px</p>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <>
+                                            <Upload className="mx-auto mb-2 text-gray-400" size={24} />
+                                            <p className="text-gray-600">Drag & drop image here, or click to upload</p>
+                                            <p className="text-sm text-gray-500 mt-1">Recommended size: 1200x600px</p>
+                                        </>
+                                    )}
+                                </div>
                             </CardBody>
                         </Card>
 
                         {/* YouTube Video */}
-                        <Card className="flex-1 h-96 bg-white border border-gray-200 shadow-sm">
+                        <Card className="flex-1 xl:min-h-96 xl:h-145 bg-white border border-gray-200 shadow-sm">
                             <CardHeader>
                                 <h3 className="text-lg font-semibold text-black">YouTube Video</h3>
                             </CardHeader>
                             <CardBody className="overflow-y-auto">
                                 {article.youtubeVideo ? (
                                     <div className="space-y-4">
-                                        <div className="relative">
-                                            <img
-                                                src={youtubeThumbnail}
-                                                alt="YouTube Thumbnail"
-                                                className="w-full h-48 object-cover rounded-lg"
-                                            />
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <div className="bg-red-600 rounded-full p-4">
-                                                    <Play size={24} className="text-white" />
+                                        {videoId && !isVideoPlaying ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsVideoPlaying(true)}
+                                                className="relative w-full aspect-video rounded-lg overflow-hidden group"
+                                            >
+                                                <img
+                                                    src={youtubeThumbnail}
+                                                    alt="Video thumbnail"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition" />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="bg-red-600 rounded-full p-4 shadow-lg group-hover:scale-110 transition">
+                                                        <Play size={24} className="text-white" />
+                                                    </div>
                                                 </div>
+                                            </button>
+                                        ) : videoId ? (
+                                            <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                                                <iframe
+                                                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                                                    title="YouTube video player"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                    className="w-full h-full"
+                                                />
                                             </div>
-                                        </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-500">No valid YouTube URL</p>
+                                        )}
 
                                         <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                                             <Youtube size={20} className="text-red-600" />
@@ -455,7 +661,10 @@ export default function ArticleEditor({ articleId = null }) {
                                             <Button
                                                 variant="light"
                                                 color="danger"
-                                                onPress={() => handleInputChange("youtubeVideo", "")}
+                                                onPress={() => {
+                                                    handleInputChange("youtubeVideo", "");
+                                                    setIsVideoPlaying(false);
+                                                }}
                                             >
                                                 Remove
                                             </Button>
@@ -463,7 +672,7 @@ export default function ArticleEditor({ articleId = null }) {
                                     </div>
                                 ) : (
                                     <div
-                                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors h-full flex flex-col justify-center"
+                                        className="border-2 border-dashed bg-zinc-50 border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors h-full flex flex-col justify-center"
                                         onClick={onVideoModalOpen}
                                     >
                                         <Youtube className="mx-auto text-red-600 mb-2" size={24} />
@@ -474,8 +683,6 @@ export default function ArticleEditor({ articleId = null }) {
                             </CardBody>
                         </Card>
                     </div>
-
-
                 </div>
 
                 {/* Sidebar - Settings - 1/4 width */}
@@ -493,34 +700,46 @@ export default function ArticleEditor({ articleId = null }) {
                                 onChange={(e) => handleInputChange('publishDate', e.target.value.split('T')[0])}
                                 variant="bordered"
                             />
-                            <Select
-                                label="Main Category"
-                                selectedKeys={article.category ? [article.category] : []}
-                                onChange={(e) => handleCategoryChange(e.target.value)}
-                                variant="bordered"
-                            >
-                                {categories.map((category) => (
-                                    <SelectItem key={category.id} value={category.id}>
-                                        {category.name}
-                                    </SelectItem>
-                                ))}
-                            </Select>
+                            
+                            {/* Dynamically render category dropdowns */}
+                            {categoryLevels.map((levelCategories, levelIndex) => {
+                                // Get parent category name for better labeling
+                                let label = 'Main Category';
+                                if (levelIndex > 0) {
+                                    const parentCategory = categoryLevels[levelIndex - 1]?.find(
+                                        cat => cat._id === categoryPath[levelIndex - 1]
+                                    );
+                                    // Use parent name + "Subcategory" or customize based on your needs
+                                    label = parentCategory ? `${parentCategory.name} Subcategory` : `Category Level ${levelIndex + 1}`;
+                                }
+                                
+                                const selectedValue = categoryPath[levelIndex] || '';
 
-                            {showSubCategory && (
-                                <Select
-                                    label="District"
-                                    selectedKeys={article.subCategory ? [article.subCategory] : []}
-                                    onChange={(e) => handleInputChange('subCategory', e.target.value)}
-                                    variant="bordered"
-                                    startContent={<MapPin size={16} className="text-gray-400" />}
-                                >
-                                    {districts.map((district) => (
-                                        <SelectItem key={district.id} value={district.id}>
-                                            {district.name}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
-                            )}
+                                return (
+                                    <Select
+                                        key={levelIndex}
+                                        label={label}
+                                        selectedKeys={selectedValue ? [selectedValue] : []}
+                                        onSelectionChange={(keys) => {
+                                            const selectedKey = Array.from(keys)[0];
+                                            if (selectedKey) {
+                                                handleCategoryLevelChange(levelIndex, selectedKey);
+                                            }
+                                        }}
+                                        variant="bordered"
+                                        startContent={levelIndex > 0 ? <MapPin size={16} className="text-gray-400" /> : undefined}
+                                    >
+                                        {levelCategories.map((category) => (
+                                            <SelectItem 
+                                                key={category._id || category.id} 
+                                                value={category._id || category.id}
+                                            >
+                                                {category.name}
+                                            </SelectItem>
+                                        ))}
+                                    </Select>
+                                );
+                            })}
                         </CardBody>
                     </Card>
 
@@ -530,6 +749,7 @@ export default function ArticleEditor({ articleId = null }) {
                             <h3 className="text-lg font-semibold text-black">Article Features</h3>
                         </CardHeader>
                         <CardBody className="space-y-4">
+                            {/* Breaking News */}
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
                                     <AlertTriangle size={18} className="text-red-500" />
@@ -538,10 +758,11 @@ export default function ArticleEditor({ articleId = null }) {
                                 <Switch
                                     color="danger"
                                     isSelected={article.isBreaking}
-                                    onValueChange={(value) => handleInputChange('isBreaking', value)}
+                                    onValueChange={(value) => handleInputChange("isBreaking", value)}
                                 />
                             </div>
 
+                            {/* Trending */}
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
                                     <TrendingUp size={18} className="text-blue-500" />
@@ -550,7 +771,59 @@ export default function ArticleEditor({ articleId = null }) {
                                 <Switch
                                     color="primary"
                                     isSelected={article.isTrending}
-                                    onValueChange={(value) => handleInputChange('isTrending', value)}
+                                    onValueChange={(value) => handleInputChange("isTrending", value)}
+                                />
+                            </div>
+
+                            {/* Featured */}
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <Star size={18} className="text-yellow-500" />
+                                    <span className="text-gray-700">Featured</span>
+                                </div>
+                                <Switch
+                                    color="warning"
+                                    isSelected={article.isFeatured}
+                                    onValueChange={(value) => handleInputChange("isFeatured", value)}
+                                />
+                            </div>
+
+                            {/* Top Story */}
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <ArrowUpCircle size={18} className="text-emerald-500" />
+                                    <span className="text-gray-700">Top Story</span>
+                                </div>
+                                <Switch
+                                    color="success"
+                                    isSelected={article.isTopStory}
+                                    onValueChange={(value) => handleInputChange("isTopStory", value)}
+                                />
+                            </div>
+
+                            {/* Sub Story */}
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <ListTree size={18} className="text-purple-500" />
+                                    <span className="text-gray-700">Sub Story</span>
+                                </div>
+                                <Switch
+                                    color="secondary"
+                                    isSelected={article.isSubStory}
+                                    onValueChange={(value) => handleInputChange("isSubStory", value)}
+                                />
+                            </div>
+
+                            {/* Editor's Pick */}
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    <PenSquare size={18} className="text-pink-500" />
+                                    <span className="text-gray-700">Editor&apos;s Pick</span>
+                                </div>
+                                <Switch
+                                    color="secondary"
+                                    isSelected={article.isEditorsPick}
+                                    onValueChange={(value) => handleInputChange("isEditorsPick", value)}
                                 />
                             </div>
                         </CardBody>
@@ -700,7 +973,7 @@ export default function ArticleEditor({ articleId = null }) {
                                     <img
                                         src={getYouTubeThumbnail(youtubeUrl)}
                                         alt="YouTube Preview"
-                                        className="w-full h-32 object-cover rounded-lg"
+                                        className="w-full h-60 object-cover rounded-lg"
                                     />
                                     <div className="absolute inset-0 flex items-center justify-center">
                                         <div className="bg-red-600 rounded-full p-2">
