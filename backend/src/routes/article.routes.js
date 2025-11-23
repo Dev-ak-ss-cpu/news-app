@@ -7,10 +7,11 @@ import {
   getArticlesByCategoryPath,
   updateArticle,
 } from "../controllers/article.controller.js";
+import { uploadSingle } from "../middleware/upload.middleware.js";
 
 const router = express.Router();
 
-router.post("/", createArticle);
+router.post("/", uploadSingle, createArticle);
 
 router.get(/^\/category\/(.+)$/, (req, res, next) => {
   // Extract the category path from the regex match
@@ -26,8 +27,8 @@ router.get("/", getAllArticles);
 
 router.get("/:slug", getArticleBySlug);
 
-router.put("/:id", updateArticle);
-router.patch("/:id", updateArticle);
+router.put("/:id", uploadSingle, updateArticle);
+router.patch("/:id", uploadSingle, updateArticle);
 
 router.delete("/:id", deleteArticle);
 

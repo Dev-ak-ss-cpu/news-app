@@ -1,14 +1,30 @@
 import { Article } from "../models/article.model.js";
 import { Category } from "../models/category.model.js";
+import { deleteFromCloudinary, uploadToCloudinary } from "../utils/cloudinary.js";
 
 export const createArticle = async (req, res) => {
   try {
+    let featuredImageUrl = "";
+
+    if (req.file) {
+      try {
+        const result = await uploadToCloudinary(req.file, "news-app/articles");
+        featuredImageUrl = result.secure_url;
+      } catch (uploadError) {
+        return res.status(400).json({
+          success: false,
+          message: "Failed to upload image: " + uploadError.message,
+        });
+      }
+    } else if (req.body.featuredImage) {
+      featuredImageUrl = req.body.featuredImage;
+    }
+
     const {
       title,
       excerpt,
       content,
       category,
-      featuredImage,
       youtubeVideo,
       tags,
       author,
@@ -34,14 +50,19 @@ export const createArticle = async (req, res) => {
       });
     }
 
+    let tagsArray = [];
+    if (tags) {
+      tagsArray = typeof tags === "string" ? JSON.parse(tags) : tags;
+    }
+
     const article = new Article({
       title,
       excerpt,
       content,
       category,
-      featuredImage: featuredImage || "",
+      featuredImage: featuredImageUrl,
       youtubeVideo: youtubeVideo || "",
-      tags: tags || [],
+      tags: tagsArray || [],
       author,
       status: status || "draft",
       isBreaking: isBreaking || false,
@@ -240,11 +261,41 @@ export const updateArticle = async (req, res) => {
       });
     }
 
+    if (req.file) {
+      try {
+        if (article.featuredImage) {
+          try {
+            const urlParts = article.featuredImage.split("/");
+            const publicIdWithExt = urlParts.slice(-2).join("/").split(".")[0];
+            const publicId = `news-app/articles/${publicIdWithExt}`;
+            await deleteFromCloudinary(publicId);
+          } catch (deleteError) {
+            console.log("Could not delete old image:", deleteError.message);
+          }
+        }
+
+        const result = await uploadToCloudinary(req.file, "news-app/articles");
+        req.body.featuredImage = result.secure_url;
+      } catch (uploadError) {
+        return res.status(400).json({
+          success: false,
+          message: "Failed to upload image: " + uploadError.message,
+        });
+      }
+    }
+
     Object.keys(req.body).forEach((key) => {
-      if (req.body[key] !== undefined) {
+      if (req.body[key] !== undefined && key !== "tags") {
         article[key] = req.body[key];
       }
     });
+
+    if (req.body.tags !== undefined) {
+      article.tags =
+        typeof req.body.tags === "string"
+          ? JSON.parse(req.body.tags)
+          : req.body.tags;
+    }
 
     await article.save();
     await article.populate("category", "name slug parent level");
@@ -266,13 +317,26 @@ export const deleteArticle = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const article = await Article.findByIdAndDelete(id);
+    const article = await Article.findById(id);
     if (!article) {
       return res.status(404).json({
         success: false,
         message: "Article not found",
       });
     }
+
+    if (article.featuredImage) {
+      try {
+        const urlParts = article.featuredImage.split("/");
+        const publicIdWithExt = urlParts.slice(-2).join("/").split(".")[0];
+        const publicId = `news-app/articles/${publicIdWithExt}`;
+        await deleteFromCloudinary(publicId);
+      } catch (deleteError) {
+        console.log("Could not delete image:", deleteError.message);
+      }
+    }
+
+    await Article.findByIdAndDelete(id);
 
     res.status(200).json({
       success: true,
@@ -298,7 +362,6 @@ const getAllCategoryIds = async (categoryId) => {
   return categoryIds;
 };
 
-// Helper function to get full category path info
 const getCategoryPathInfo = async (categoryId) => {
   const category = await Category.findById(categoryId).populate(
     "parent",
