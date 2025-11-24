@@ -20,6 +20,7 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  toast,
 } from "@heroui/react";
 import {
   Save,
@@ -64,8 +65,8 @@ export default function ArticleEditor({ articleId = null }) {
   } = useDisclosure();
 
   const [categories, setCategories] = useState([]);
-  const [categoryLevels, setCategoryLevels] = useState([]); // Array of arrays: [[level0], [level1], [level2], ...]
-  const [categoryPath, setCategoryPath] = useState([]); // Array of selected category IDs: [cat1Id, cat2Id, cat3Id]
+  const [categoryLevels, setCategoryLevels] = useState([]);
+  const [categoryPath, setCategoryPath] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
@@ -95,6 +96,19 @@ export default function ArticleEditor({ articleId = null }) {
 
   const [newTag, setNewTag] = useState("");
 
+  // Validation errors state
+  const [errors, setErrors] = useState({
+    title: "",
+    excerpt: "",
+    content: "",
+    category: "",
+    featuredImage: "",
+    publishDate: "",
+    metaTitle: "",
+    metaDescription: "",
+    articleFeatures: "", // Add this for Article Features validation
+  });
+
   // Quill modules configuration
   const modules = useMemo(
     () => ({
@@ -110,7 +124,7 @@ export default function ArticleEditor({ articleId = null }) {
         [{ direction: "rtl" }],
         [{ align: [] }],
         ["blockquote", "code-block"],
-        ["link", "image", "video"],
+        ["link"],
         ["clean"],
       ],
       clipboard: {
@@ -139,15 +153,13 @@ export default function ArticleEditor({ articleId = null }) {
     "blockquote",
     "code-block",
     "link",
-    "image",
-    "video",
   ];
 
   // Load categories and existing article data
   useEffect(() => {
     loadCategories();
     if (articleId) {
-      loadArticle();
+      // loadArticle(); // Uncomment if you have this function
     }
   }, [articleId]);
 
@@ -156,7 +168,6 @@ export default function ArticleEditor({ articleId = null }) {
       const response = await genericGetApi("/api/categories", { level: 0 });
       if (response.success) {
         setCategories(response.data);
-        // Initialize first level
         setCategoryLevels([response.data]);
       }
     } catch (error) {
@@ -164,100 +175,6 @@ export default function ArticleEditor({ articleId = null }) {
     }
   };
 
-  const loadArticle = async () => {
-    setLoading(true);
-    try {
-      // TODO: Replace with actual API call
-      // const response = await genericGetApi(`/api/articles/${articleId}`);
-      // if (response.success) {
-      //     const articleData = response.data;
-      //     setArticle(articleData);
-      //     // Load category path if article has category
-      //     if (articleData.category) {
-      //         await loadCategoryPath(articleData.category);
-      //     }
-      // }
-
-      // Mock data for now
-      setTimeout(() => {
-        setArticle({
-          title: "Sample Article Title for Editing",
-          content:
-            "<h2>Introduction</h2><p>This is the main content of the article.</p>",
-          excerpt: "This is a brief excerpt of the article.",
-          category: "",
-          tags: ["News", "Update", "Local"],
-          featuredImage:
-            "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3",
-          youtubeVideo: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-          status: "draft",
-          isBreaking: true,
-          isTrending: false,
-          isFeatured: false,
-          isTopStory: false,
-          isSubStory: false,
-          isEditorsPick: false,
-          metaTitle: "Sample Meta Title",
-          metaDescription: "Sample meta description for SEO",
-          publishDate: "2024-01-16",
-          author: "John Doe",
-        });
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error("Failed to load article:", error);
-      setLoading(false);
-    }
-  };
-
-  // Load full category path from root to selected category
-  const loadCategoryPath = async (finalCategoryId) => {
-    try {
-      // Get the final category
-      const finalCategoryResponse = await genericGetApi(
-        `/api/categories/${finalCategoryId}`
-      );
-      if (!finalCategoryResponse.success) return;
-
-      const path = [];
-      const levels = [];
-      let currentCategory = finalCategoryResponse.data;
-
-      // Build path from leaf to root
-      while (currentCategory) {
-        path.unshift(currentCategory._id);
-        // Get siblings at this level
-        const parentId = currentCategory.parent || null;
-        const siblingsResponse = await genericGetApi("/api/categories", {
-          parent: parentId || "null",
-        });
-        if (siblingsResponse.success) {
-          levels.unshift(siblingsResponse.data);
-        }
-        // Move to parent
-        if (parentId) {
-          const parentResponse = await genericGetApi(
-            `/api/categories/${parentId}`
-          );
-          if (parentResponse.success) {
-            currentCategory = parentResponse.data;
-          } else {
-            break;
-          }
-        } else {
-          break;
-        }
-      }
-
-      setCategoryPath(path);
-      setCategoryLevels(levels);
-      setArticle((prev) => ({ ...prev, category: finalCategoryId }));
-    } catch (error) {
-      console.error("Failed to load category path:", error);
-    }
-  };
-
-  // Load children for a category at a specific level
   const loadCategoryChildren = async (parentId, levelIndex) => {
     if (!parentId) {
       return [];
@@ -281,9 +198,7 @@ export default function ArticleEditor({ articleId = null }) {
     }
   };
 
-  // Handle category selection at any level
   const handleCategoryLevelChange = async (levelIndex, selectedCategoryId) => {
-    // Find the selected category
     const selectedCategory = categoryLevels[levelIndex]?.find(
       (cat) =>
         cat._id === selectedCategoryId ||
@@ -291,30 +206,29 @@ export default function ArticleEditor({ articleId = null }) {
     );
 
     if (!selectedCategory) return;
-
-    // Update category path - keep up to current level, then add new selection
     const newPath = [...categoryPath.slice(0, levelIndex), selectedCategoryId];
     setCategoryPath(newPath);
 
-    // Update article state - store the final selected category (deepest level)
     const finalCategoryId = selectedCategoryId;
     setArticle((prev) => ({
       ...prev,
       category: finalCategoryId,
     }));
 
-    // Load children for the selected category
+    // Clear category error when category is selected
+    if (errors.category) {
+      setErrors((prev) => ({ ...prev, category: "" }));
+    }
+
     const children = await loadCategoryChildren(
       selectedCategory._id,
       levelIndex + 1
     );
 
-    // Update category levels - keep up to current level, add children if they exist
     const newLevels = [...categoryLevels.slice(0, levelIndex + 1)];
     if (children.length > 0) {
       newLevels.push(children);
     } else {
-      // Remove any levels beyond this one if no children
       setCategoryLevels(newLevels);
       return;
     }
@@ -324,6 +238,10 @@ export default function ArticleEditor({ articleId = null }) {
 
   const handleInputChange = (field, value) => {
     setArticle({ ...article, [field]: value });
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
   };
 
   const addTag = () => {
@@ -359,6 +277,10 @@ export default function ArticleEditor({ articleId = null }) {
         ...prev,
         featuredImage: reader.result,
       }));
+      // Clear featuredImage error when image is uploaded
+      if (errors.featuredImage) {
+        setErrors((prev) => ({ ...prev, featuredImage: "" }));
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -376,143 +298,228 @@ export default function ArticleEditor({ articleId = null }) {
     }
   };
 
-const handleSave = async (status = 'draft') => {
-    // Validation
-    if (!article.title || !article.content) {
-        alert('Please fill in title and content');
-        return;
+  // Validation function
+  const validateForm = () => {
+    const newErrors = {
+      title: "",
+      excerpt: "",
+      content: "",
+      category: "",
+      featuredImage: "",
+      publishDate: "",
+      metaTitle: "",
+      metaDescription: "",
+      articleFeatures: "", // Add this
+    };
+
+    let isValid = true;
+
+    // Validate title
+    if (!article.title || article.title.trim() === "") {
+      newErrors.title = "Title is required";
+      isValid = false;
     }
 
-    if (!article.category) {
-        alert('Please select a category');
-        return;
+    // Validate excerpt
+    if (!article.excerpt || article.excerpt.trim() === "") {
+      newErrors.excerpt = "Excerpt is required";
+      isValid = false;
+    }
+
+    // Validate content
+    if (
+      !article.content ||
+      article.content.trim() === "" ||
+      article.content === "<p><br></p>" ||
+      article.content === "<p></p>"
+    ) {
+      newErrors.content = "Content is required";
+      isValid = false;
+    }
+
+    // Validate category
+    if (!article.category || article.category === "") {
+      newErrors.category = "Category is required";
+      isValid = false;
+    }
+
+    // Validate featuredImage
+    if (!article.featuredImage || article.featuredImage === "") {
+      newErrors.featuredImage = "Featured image is required";
+      isValid = false;
+    }
+
+    // Validate publishDate
+    if (!article.publishDate || article.publishDate === "") {
+      newErrors.publishDate = "Publish date is required";
+      isValid = false;
+    }
+
+    // Validate metaTitle
+    if (!article.metaTitle || article.metaTitle.trim() === "") {
+      newErrors.metaTitle = "Meta title is required";
+      isValid = false;
+    }
+
+    // Validate metaDescription
+    if (!article.metaDescription || article.metaDescription.trim() === "") {
+      newErrors.metaDescription = "Meta description is required";
+      isValid = false;
+    }
+
+    // Validate Article Features - at least one must be selected
+    if (
+      !article.isBreaking &&
+      !article.isTrending &&
+      !article.isFeatured &&
+      !article.isTopStory &&
+      !article.isSubStory &&
+      !article.isEditorsPick
+    ) {
+      newErrors.articleFeatures = "At least one article feature must be selected";
+      isValid = false;
+    }
+
+    // Remove author validation - it's no longer required
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  const handleSave = async (status = "draft") => {
+    // Validate form
+    if (!validateForm()) {
+      return;
     }
 
     setSaving(true);
     try {
-        // Check if featuredImage is a file (base64 data URL) or URL
-        const isFileUpload =
-            article.featuredImage &&
-            article.featuredImage.startsWith('data:image/');
+      const isFileUpload =
+        article.featuredImage &&
+        article.featuredImage.startsWith("data:image/");
 
-        let response;
+      let response;
 
-        if (isFileUpload) {
-            // Use FormData for file upload
-            const formData = new FormData();
-            formData.append('title', article.title);
-            formData.append('excerpt', article.excerpt || '');
-            formData.append('content', article.content);
-            formData.append('category', article.category);
-            formData.append('author', article.author);
-            formData.append('status', status);
-            formData.append('isBreaking', article.isBreaking);
-            formData.append('isTrending', article.isTrending);
-            formData.append('isFeatured', article.isFeatured);
-            formData.append('isTopStory', article.isTopStory);
-            formData.append('isSubStory', article.isSubStory);
-            formData.append('isEditorsPick', article.isEditorsPick);
-            formData.append('youtubeVideo', article.youtubeVideo || '');
-            formData.append('tags', JSON.stringify(article.tags));
-            formData.append('metaTitle', article.metaTitle || '');
-            formData.append('metaDescription', article.metaDescription || '');
-            formData.append('publishDate', article.publishDate);
+      if (isFileUpload) {
+        const formData = new FormData();
+        formData.append("title", article.title);
+        formData.append("excerpt", article.excerpt || "");
+        formData.append("content", article.content);
+        formData.append("category", article.category);
+        formData.append("author", article.author);
+        formData.append("status", status);
+        formData.append("isBreaking", article.isBreaking);
+        formData.append("isTrending", article.isTrending);
+        formData.append("isFeatured", article.isFeatured);
+        formData.append("isTopStory", article.isTopStory);
+        formData.append("isSubStory", article.isSubStory);
+        formData.append("isEditorsPick", article.isEditorsPick);
+        formData.append("youtubeVideo", article.youtubeVideo || "");
+        formData.append("tags", JSON.stringify(article.tags));
+        formData.append("metaTitle", article.metaTitle || "");
+        formData.append("metaDescription", article.metaDescription || "");
+        formData.append("publishDate", article.publishDate);
 
-            // Convert base64 to blob - RENAME THIS VARIABLE
-            const fetchResponse = await fetch(article.featuredImage);
-            const blob = await fetchResponse.blob();
-            formData.append('featuredImage', blob, 'featured-image.jpg');
+        const fetchResponse = await fetch(article.featuredImage);
+        const blob = await fetchResponse.blob();
+        formData.append("featuredImage", blob, "featured-image.jpg");
 
-            if (articleId) {
-                response = await genericPutApiWithFile(
-                    `/api/articles/${articleId}`,
-                    formData
-                );
-            } else {
-                response = await genericPostApiWithFile("/api/articles", formData);
-            }
+        if (articleId) {
+          response = await genericPutApiWithFile(
+            `/api/articles/${articleId}`,
+            formData
+          );
         } else {
-            // Use JSON for URL-based images or no image
-            const articleToSave = {
-                title: article.title,
-                excerpt: article.excerpt,
-                content: article.content,
-                category: article.category,
-                featuredImage: article.featuredImage || '',
-                youtubeVideo: article.youtubeVideo || '',
-                tags: article.tags,
-                author: article.author,
-                status: status,
-                isBreaking: article.isBreaking,
-                isTrending: article.isTrending,
-                isFeatured: article.isFeatured,
-                isTopStory: article.isTopStory,
-                isSubStory: article.isSubStory,
-                isEditorsPick: article.isEditorsPick,
-                metaTitle: article.metaTitle,
-                metaDescription: article.metaDescription,
-                publishDate: article.publishDate,
-            };
-
-            if (articleId) {
-                response = await genericPutApi(
-                    `/api/articles/${articleId}`,
-                    articleToSave
-                );
-            } else {
-                response = await genericPostApi("/api/articles", articleToSave);
-            }
+          response = await genericPostApiWithFile("/api/articles", formData);
         }
+      } else {
+        const articleToSave = {
+          title: article.title,
+          excerpt: article.excerpt,
+          content: article.content,
+          category: article.category,
+          featuredImage: article.featuredImage || "",
+          youtubeVideo: article.youtubeVideo || "",
+          tags: article.tags,
+          author: article.author,
+          status: status,
+          isBreaking: article.isBreaking,
+          isTrending: article.isTrending,
+          isFeatured: article.isFeatured,
+          isTopStory: article.isTopStory,
+          isSubStory: article.isSubStory,
+          isEditorsPick: article.isEditorsPick,
+          metaTitle: article.metaTitle,
+          metaDescription: article.metaDescription,
+          publishDate: article.publishDate,
+        };
 
-        if (response.success) {
-            alert(
-                `Article ${
-                    status === 'draft' ? 'saved as draft' : 'published'
-                } successfully!`
-            );
-            // Optionally redirect or reset form
-            if (!articleId && status === 'published') {
-                // Reset form after successful publish
-                setArticle({
-                    title: '',
-                    content: '',
-                    excerpt: '',
-                    category: '',
-                    tags: [],
-                    featuredImage: '',
-                    youtubeVideo: '',
-                    status: 'draft',
-                    isBreaking: false,
-                    isTrending: false,
-                    isFeatured: false,
-                    isTopStory: false,
-                    isSubStory: false,
-                    isEditorsPick: false,
-                    metaTitle: '',
-                    metaDescription: '',
-                    publishDate: new Date().toISOString().split('T')[0],
-                    author: 'Current User'
-                });
-                setCategoryPath([]);
-                setCategoryLevels([categories]);
-            }
+        if (articleId) {
+          response = await genericPutApi(
+            `/api/articles/${articleId}`,
+            articleToSave
+          );
         } else {
-            alert(response.message || 'Failed to save article');
+          response = await genericPostApi("/api/articles", articleToSave);
         }
+      }
+
+      if (response.success) {
+        toast.success(
+          `Article ${
+            status === "draft" ? "saved as draft" : "published"
+          } successfully!`
+        );
+        if (!articleId && status === "published") {
+          setArticle({
+            title: "",
+            content: "",
+            excerpt: "",
+            category: "",
+            tags: [],
+            featuredImage: "",
+            youtubeVideo: "",
+            status: "draft",
+            isBreaking: false,
+            isTrending: false,
+            isFeatured: false,
+            isTopStory: false,
+            isSubStory: false,
+            isEditorsPick: false,
+            metaTitle: "",
+            metaDescription: "",
+            publishDate: new Date().toISOString().split("T")[0],
+            author: "Current User",
+          });
+          setCategoryPath([]);
+          setCategoryLevels([categories]);
+          setErrors({
+            title: "",
+            excerpt: "",
+            content: "",
+            category: "",
+            featuredImage: "",
+            publishDate: "",
+            metaTitle: "",
+            metaDescription: "",
+            articleFeatures: "", // Add this
+          });
+        }
+      } else {
+        toast.error(response.message || "Failed to save article");
+      }
     } catch (error) {
-        console.error('Error saving article:', error);
-        alert('An error occurred while saving the article');
+      console.error("Error saving article:", error);
+      toast.error("An error occurred while saving the article");
     } finally {
-        setSaving(false);
+      setSaving(false);
     }
-};
+  };
 
   const youtubeThumbnail = article.youtubeVideo
     ? getYouTubeThumbnail(article.youtubeVideo)
     : "";
-  const videoId = article.youtubeVideo
-    ? getYouTubeId(article.youtubeVideo)
-    : "";
+  const videoId = article.youtubeVideo ? getYouTubeId(article.youtubeVideo) : "";
 
   if (loading) {
     return (
@@ -600,29 +607,39 @@ const handleSave = async (status = 'draft') => {
           {/* Title Card */}
           <Card className="bg-white border border-gray-200 shadow-sm">
             <CardBody className="p-6">
-              <Input
-                placeholder="Enter article title..."
-                value={article.title}
-                onChange={(e) => handleInputChange("title", e.target.value)}
-                className="text-2xl font-bold border-none p-0 focus:ring-0"
-                classNames={{
-                  input: "text-2xl font-bold",
-                }}
-              />
-              <Textarea
-                placeholder="Brief excerpt or description..."
-                value={article.excerpt}
-                onChange={(e) => handleInputChange("excerpt", e.target.value)}
-                className="mt-4 border-none p-0 focus:ring-0 resize-none"
-                minRows={2}
-              />
+              <div data-field="title">
+                <Input
+                  placeholder="Enter article title..."
+                  value={article.title}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
+                  className="text-2xl font-bold border-none p-0 focus:ring-0"
+                  classNames={{
+                    input: "text-2xl font-bold",
+                  }}
+                  isRequired
+                  isInvalid={!!errors.title}
+                  errorMessage={errors.title}
+                />
+              </div>
+              <div data-field="excerpt" className="mt-4">
+                <Textarea
+                  placeholder="Brief excerpt or description..."
+                  value={article.excerpt}
+                  onChange={(e) => handleInputChange("excerpt", e.target.value)}
+                  className="border-none p-0 focus:ring-0 resize-none text-2xl"
+                  minRows={2}
+                  isRequired
+                  isInvalid={!!errors.excerpt}
+                  errorMessage={errors.excerpt}
+                />
+              </div>
             </CardBody>
           </Card>
 
           {/* Content Editor with React Quill */}
-          <Card className="bg-white border border-gray-200 shadow-sm">
+          <Card className="bg-white border border-gray-200 shadow-sm">  
             <CardBody className="p-0">
-              <div className="quill-editor">
+              <div className="quill-editor" data-field="content">
                 <ReactQuill
                   theme="snow"
                   value={article.content}
@@ -632,19 +649,23 @@ const handleSave = async (status = 'draft') => {
                   placeholder="Write your article content here..."
                 />
               </div>
+              {errors.content && (
+                <p className="text-danger text-sm mt-2 px-4 pb-4">
+                  {errors.content}
+                </p>
+              )}
             </CardBody>
           </Card>
 
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             {/* Featured Image */}
-            <Card className="flex-1  xl:min-h-96 xl:h-145 bg-white border border-gray-200 shadow-sm">
+            <Card className="flex-1 xl:min-h-96 xl:h-145 bg-white border border-gray-200 shadow-sm">
               <CardHeader>
                 <h3 className="text-lg font-semibold text-black">
-                  Featured Image
+                  Featured Image <span className="text-red-500">*</span>
                 </h3>
               </CardHeader>
               <CardBody className="overflow-y-auto">
-                {/* Hidden input */}
                 <input
                   id="featured-image-input"
                   type="file"
@@ -653,9 +674,11 @@ const handleSave = async (status = 'draft') => {
                   onChange={(e) => handleImagePreview(e.target.files?.[0])}
                 />
 
-                {/* Upload Area */}
                 <div
-                  className={`border-2 border-zinc-300 bg-zinc-50 border-dashed rounded-lg p-4 h-full flex flex-col justify-center items-center text-center transition relative cursor-pointer hover:border-gray-400`}
+                  data-field="featuredImage"
+                  className={`border-2 ${
+                    errors.featuredImage ? "border-danger" : "border-zinc-300"
+                  } bg-zinc-50 border-dashed rounded-lg p-4 h-full flex flex-col justify-center items-center text-center transition relative cursor-pointer hover:border-gray-400`}
                   onClick={() => {
                     if (!article.featuredImage) {
                       document.getElementById("featured-image-input").click();
@@ -692,10 +715,7 @@ const handleSave = async (status = 'draft') => {
                     </div>
                   ) : (
                     <>
-                      <Upload
-                        className="mx-auto mb-2 text-gray-400"
-                        size={24}
-                      />
+                      <Upload className="mx-auto mb-2 text-gray-400" size={24} />
                       <p className="text-gray-600">
                         Drag & drop image here, or click to upload
                       </p>
@@ -705,6 +725,9 @@ const handleSave = async (status = 'draft') => {
                     </>
                   )}
                 </div>
+                {errors.featuredImage && (
+                  <p className="text-danger text-sm mt-2">{errors.featuredImage}</p>
+                )}
               </CardBody>
             </Card>
 
@@ -805,25 +828,28 @@ const handleSave = async (status = 'draft') => {
               <h3 className="text-lg font-semibold text-black">Categories</h3>
             </CardHeader>
             <CardBody className="space-y-4">
-              <Input
-                type="datetime-local"
-                label="Publish Date & Time"
-                value={`${article.publishDate}T10:00`}
-                onChange={(e) =>
-                  handleInputChange("publishDate", e.target.value.split("T")[0])
-                }
-                variant="bordered"
-              />
+              <div data-field="publishDate">
+                <Input
+                  type="date"
+                  label="Publish Date & Time"
+                  value={article.publishDate}
+                  onChange={(e) =>
+                    handleInputChange("publishDate", e.target.value.split("T")[0])
+                  }
+                  variant="bordered"
+                  isRequired
+                  isInvalid={!!errors.publishDate}
+                  errorMessage={errors.publishDate}
+                />
+              </div>
 
               {/* Dynamically render category dropdowns */}
               {categoryLevels.map((levelCategories, levelIndex) => {
-                // Get parent category name for better labeling
                 let label = "Main Category";
                 if (levelIndex > 0) {
                   const parentCategory = categoryLevels[levelIndex - 1]?.find(
                     (cat) => cat._id === categoryPath[levelIndex - 1]
                   );
-                  // Use parent name + "Subcategory" or customize based on your needs
                   label = parentCategory
                     ? `${parentCategory.name} Subcategory`
                     : `Category Level ${levelIndex + 1}`;
@@ -832,32 +858,39 @@ const handleSave = async (status = 'draft') => {
                 const selectedValue = categoryPath[levelIndex] || "";
 
                 return (
-                  <Select
+                  <div
                     key={levelIndex}
-                    label={label}
-                    selectedKeys={selectedValue ? [selectedValue] : []}
-                    onSelectionChange={(keys) => {
-                      const selectedKey = Array.from(keys)[0];
-                      if (selectedKey) {
-                        handleCategoryLevelChange(levelIndex, selectedKey);
-                      }
-                    }}
-                    variant="bordered"
-                    startContent={
-                      levelIndex > 0 ? (
-                        <MapPin size={16} className="text-gray-400" />
-                      ) : undefined
-                    }
+                    data-field={levelIndex === 0 ? "category" : undefined}
                   >
-                    {levelCategories.map((category) => (
-                      <SelectItem
-                        key={category._id || category.id}
-                        value={category._id || category.id}
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                    <Select
+                      label={label}
+                      selectedKeys={selectedValue ? [selectedValue] : []}
+                      onSelectionChange={(keys) => {
+                        const selectedKey = Array.from(keys)[0];
+                        if (selectedKey) {
+                          handleCategoryLevelChange(levelIndex, selectedKey);
+                        }
+                      }}
+                      variant="bordered"
+                      isRequired={levelIndex === 0}
+                      isInvalid={levelIndex === 0 && !!errors.category}
+                      errorMessage={levelIndex === 0 ? errors.category : undefined}
+                      startContent={
+                        levelIndex > 0 ? (
+                          <MapPin size={16} className="text-gray-400" />
+                        ) : undefined
+                      }
+                    >
+                      {levelCategories.map((category) => (
+                        <SelectItem
+                          key={category._id || category.id}
+                          value={category._id || category.id}
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
                 );
               })}
             </CardBody>
@@ -867,10 +900,14 @@ const handleSave = async (status = 'draft') => {
           <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader>
               <h3 className="text-lg font-semibold text-black">
-                Article Features
+                Article Features <span className="text-red-500">*</span>
               </h3>
             </CardHeader>
             <CardBody className="space-y-4">
+              {errors.articleFeatures && (
+                <p className="text-danger text-sm mb-2">{errors.articleFeatures}</p>
+              )}
+              
               {/* Breaking News */}
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -880,9 +917,13 @@ const handleSave = async (status = 'draft') => {
                 <Switch
                   color="danger"
                   isSelected={article.isBreaking}
-                  onValueChange={(value) =>
-                    handleInputChange("isBreaking", value)
-                  }
+                  onValueChange={(value) => {
+                    handleInputChange("isBreaking", value);
+                    // Clear error when any feature is selected
+                    if (errors.articleFeatures) {
+                      setErrors((prev) => ({ ...prev, articleFeatures: "" }));
+                    }
+                  }}
                 />
               </div>
 
@@ -895,9 +936,12 @@ const handleSave = async (status = 'draft') => {
                 <Switch
                   color="primary"
                   isSelected={article.isTrending}
-                  onValueChange={(value) =>
-                    handleInputChange("isTrending", value)
-                  }
+                  onValueChange={(value) => {
+                    handleInputChange("isTrending", value);
+                    if (errors.articleFeatures) {
+                      setErrors((prev) => ({ ...prev, articleFeatures: "" }));
+                    }
+                  }}
                 />
               </div>
 
@@ -910,9 +954,12 @@ const handleSave = async (status = 'draft') => {
                 <Switch
                   color="warning"
                   isSelected={article.isFeatured}
-                  onValueChange={(value) =>
-                    handleInputChange("isFeatured", value)
-                  }
+                  onValueChange={(value) => {
+                    handleInputChange("isFeatured", value);
+                    if (errors.articleFeatures) {
+                      setErrors((prev) => ({ ...prev, articleFeatures: "" }));
+                    }
+                  }}
                 />
               </div>
 
@@ -925,9 +972,12 @@ const handleSave = async (status = 'draft') => {
                 <Switch
                   color="success"
                   isSelected={article.isTopStory}
-                  onValueChange={(value) =>
-                    handleInputChange("isTopStory", value)
-                  }
+                  onValueChange={(value) => {
+                    handleInputChange("isTopStory", value);
+                    if (errors.articleFeatures) {
+                      setErrors((prev) => ({ ...prev, articleFeatures: "" }));
+                    }
+                  }}
                 />
               </div>
 
@@ -940,9 +990,12 @@ const handleSave = async (status = 'draft') => {
                 <Switch
                   color="secondary"
                   isSelected={article.isSubStory}
-                  onValueChange={(value) =>
-                    handleInputChange("isSubStory", value)
-                  }
+                  onValueChange={(value) => {
+                    handleInputChange("isSubStory", value);
+                    if (errors.articleFeatures) {
+                      setErrors((prev) => ({ ...prev, articleFeatures: "" }));
+                    }
+                  }}
                 />
               </div>
 
@@ -955,9 +1008,12 @@ const handleSave = async (status = 'draft') => {
                 <Switch
                   color="secondary"
                   isSelected={article.isEditorsPick}
-                  onValueChange={(value) =>
-                    handleInputChange("isEditorsPick", value)
-                  }
+                  onValueChange={(value) => {
+                    handleInputChange("isEditorsPick", value);
+                    if (errors.articleFeatures) {
+                      setErrors((prev) => ({ ...prev, articleFeatures: "" }));
+                    }
+                  }}
                 />
               </div>
             </CardBody>
@@ -1009,21 +1065,49 @@ const handleSave = async (status = 'draft') => {
               <h3 className="text-lg font-semibold text-black">SEO Settings</h3>
             </CardHeader>
             <CardBody className="space-y-4">
-              <Input
-                label="Meta Title"
-                value={article.metaTitle}
-                onChange={(e) => handleInputChange("metaTitle", e.target.value)}
-                variant="bordered"
-              />
-              <Textarea
-                label="Meta Description"
-                value={article.metaDescription}
-                onChange={(e) =>
-                  handleInputChange("metaDescription", e.target.value)
-                }
-                variant="bordered"
-                minRows={3}
-              />
+              <div data-field="metaTitle">
+                <Input
+                  label="Meta Title"
+                  value={article.metaTitle}
+                  onChange={(e) => handleInputChange("metaTitle", e.target.value)}
+                  variant="bordered"
+                  isRequired
+                  isInvalid={!!errors.metaTitle}
+                  errorMessage={errors.metaTitle}
+                />
+              </div>
+              <div data-field="metaDescription">
+                <Textarea
+                  label="Meta Description"
+                  value={article.metaDescription}
+                  onChange={(e) =>
+                    handleInputChange("metaDescription", e.target.value)
+                  }
+                  variant="bordered"
+                  minRows={3}
+                  isRequired
+                  isInvalid={!!errors.metaDescription}
+                  errorMessage={errors.metaDescription}
+                />
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Author */}
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-black">Author</h3>
+            </CardHeader>
+            <CardBody>
+              <div data-field="author">
+                <Input
+                  label="Author"
+                  value={article.author}
+                  onChange={(e) => handleInputChange("author", e.target.value)}
+                  variant="bordered"
+                  // Remove isRequired, isInvalid, and errorMessage props
+                />
+              </div>
             </CardBody>
           </Card>
         </div>
