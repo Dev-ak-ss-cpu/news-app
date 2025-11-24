@@ -1,6 +1,9 @@
 import { Article } from "../models/article.model.js";
 import { Category } from "../models/category.model.js";
-import { deleteFromCloudinary, uploadToCloudinary } from "../utils/cloudinary.js";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../utils/cloudinary.js";
 
 export const createArticle = async (req, res) => {
   try {
@@ -31,6 +34,10 @@ export const createArticle = async (req, res) => {
       status,
       isBreaking,
       isTrending,
+      isFeatured,
+      isTopStory,
+      isSubStory,
+      isEditorsPick,
       metaTitle,
       metaDescription,
       publishDate,
@@ -65,8 +72,12 @@ export const createArticle = async (req, res) => {
       tags: tagsArray || [],
       author,
       status: status || "draft",
-      isBreaking: isBreaking || false,
-      isTrending: isTrending || false,
+      isBreaking: isBreaking === "true" || isBreaking === true,
+      isTrending: isTrending === "true" || isTrending === true,
+      isFeatured: isFeatured === "true" || isFeatured === true,
+      isTopStory: isTopStory === "true" || isTopStory === true,
+      isSubStory: isSubStory === "true" || isSubStory === true,
+      isEditorsPick: isEditorsPick === "true" || isEditorsPick === true,
       metaTitle,
       metaDescription,
       publishDate: publishDate ? new Date(publishDate) : new Date(),
@@ -286,7 +297,20 @@ export const updateArticle = async (req, res) => {
 
     Object.keys(req.body).forEach((key) => {
       if (req.body[key] !== undefined && key !== "tags") {
-        article[key] = req.body[key];
+        if (
+          [
+            "isBreaking",
+            "isTrending",
+            "isFeatured",
+            "isTopStory",
+            "isSubStory",
+            "isEditorsPick",
+          ].includes(key)
+        ) {
+          article[key] = req.body[key] === "true" || req.body[key] === true;
+        } else {
+          article[key] = req.body[key];
+        }
       }
     });
 

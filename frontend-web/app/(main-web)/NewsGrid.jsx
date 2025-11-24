@@ -1,45 +1,32 @@
+import Link from "next/link";
 import NewsCard from "../Components/NavCard";
 
-export default function NewsGrid() {
-    const newsItems = [
-        {
-            title: "Bihar CM Oath: 10वीं बार मुख्यमंत्री बने नीतीश, पांच-पांच नेताओं को एकसाथ दिलाई गई शपथ, ये नेता बने मंत्री",
-            location: "Patna",
-            variant: "highlighted"
-        },
-        {
-            title: "सांसद नीतीश के पास थी ज्यादा जमीनें: अब बिहार में नहीं है कोई खेत-घर, 20 साल में सीएम की दौलत कितनी बढ़ी?",
-            tags: ["#nitish kumar", "#oath ceremony in bihar", "#bihar cm nitish kumar"]
-        },
-        {
-            title: "Bihar CM Oath: 10वीं बार मुख्यमंत्री बने नीतीश, पांच-पांच नेताओं को एकसाथ दिलाई गई शपथ, ये नेता बने मंत्री"
-        },
-        {
-            title: "Bihar CM Oath: 10वीं बार मुख्यमंत्री बने नीतीश, पांच-पांच नेताओं को एकसाथ दिलाई गई शपथ, ये नेता बने मंत्री"
-        },
-        {
-            title: "Bihar CM Oath: 10वीं बार मुख्यमंत्री बने नीतीश, पांच-पांच नेताओं को एकसाथ दिलाई गई शपथ, ये नेता बने मंत्री"
-        },
-        {
-            title: "Bihar CM Oath: 10वीं बार मुख्यमंत्री बने नीतीश, पांच-पांच नेताओं को एकसाथ दिलाई गई शपथ, ये नेता बने मंत्री"
-        }
-    ];
-
+export default function NewsGrid({ articles = [] }) {
+  if (!articles || articles.length === 0) {
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {newsItems.map((news, index) => (
-                    <NewsCard
-                        key={index}
-                        title={news.title}
-                        location={news.location}
-                        date={news.date}
-                        category={news.category}
-                        tags={news.tags}
-                        variant={news.variant}
-                    />
-                ))}
-            </div>
-        </div>
+      <div className="container mx-auto px-4 py-8">
+        <p className="text-center text-gray-600">No articles found.</p>
+      </div>
     );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {articles.map((article, index) => (
+          <Link key={article._id || index} href={`/article/${article.slug}`}>
+            <NewsCard
+              title={article.title}
+              excerpt={article.excerpt}
+              image={article.featuredImage}
+              date={new Date(article.publishDate).toLocaleDateString()}
+              category={article.category?.name}
+              tags={article.tags}
+              variant={index === 0 ? "highlighted" : undefined}
+            />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
 }

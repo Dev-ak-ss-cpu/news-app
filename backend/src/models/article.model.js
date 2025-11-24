@@ -56,6 +56,22 @@ const articleSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    isTopStory: {
+      type: Boolean,
+      default: false,
+    },
+    isSubStory: {
+      type: Boolean,
+      default: false,
+    },
+    isEditorsPick: {
+      type: Boolean,
+      default: false,
+    },
     metaTitle: {
       type: String,
       trim: true,
@@ -82,6 +98,8 @@ articleSchema.index({ category: 1, status: 1, publishDate: -1 });
 articleSchema.index({ status: 1, publishDate: -1 });
 articleSchema.index({ isBreaking: 1 });
 articleSchema.index({ isTrending: 1 });
+articleSchema.index({ isFeatured: 1 });
+articleSchema.index({ isTopStory: 1 });
 
 articleSchema.pre("save", async function (next) {
   if (this.isModified("title")) {
