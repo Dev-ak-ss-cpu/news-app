@@ -174,6 +174,121 @@ export const getArticlesByCategoryPath = async (req, res) => {
   }
 };
 
+// Helper function for home page data
+const getHomePageData = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const now = new Date();
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const breakingExpiryTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    // Fetch breaking news (left panel)
+    const breakingArticles = await Article.find({
+      status: "published",
+      isBreaking: true,
+      $or: [
+        { breakingExpiresAt: { $gt: now } },
+        {
+          breakingExpiresAt: null,
+          publishDate: { $gte: breakingExpiryTime },
+        },
+      ],
+    })
+      .populate("category", "name slug parent level")
+      .sort({ publishDate: -1 })
+      .limit(5);
+
+    // Fetch featured article (center - must have image)
+    const featuredArticle = await Article.findOne({
+      status: "published",
+      isFeatured: true,
+      featuredImage: { $ne: "" },
+    })
+      .populate("category", "name slug parent level")
+      .sort({ publishDate: -1 });
+
+    // Fetch top story (center)
+    const topStory = await Article.findOne({
+      status: "published",
+      isTopStory: true,
+      _id: { $ne: featuredArticle?._id },
+    })
+      .populate("category", "name slug parent level")
+      .sort({ publishDate: -1 });
+
+    // Fetch trending articles (right panel)
+    const trendingArticles = await Article.find({
+      status: "published",
+      isTrending: true,
+    })
+      .populate("category", "name slug parent level")
+      .sort({ publishDate: -1 })
+      .limit(5);
+
+    // Get IDs to exclude from regular articles
+    const excludedIds = [featuredArticle?._id, topStory?._id].filter(Boolean);
+
+    // Fetch regular articles (center - paginated)
+    const regularArticles = await Article.find({
+      status: "published",
+      _id: { $nin: excludedIds },
+    })
+      .populate("category", "name slug parent level")
+      .sort({ publishDate: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const totalRegularArticles = await Article.countDocuments({
+      status: "published",
+      _id: { $nin: excludedIds },
+    });
+
+    // Format breaking news (timestamp logic commented for now)
+    const formattedBreakingNews = breakingArticles.map((article) => {
+      // let timeRemaining = null;
+      // if (article.breakingExpiresAt) {
+      //   const remaining = article.breakingExpiresAt - now;
+      //   timeRemaining = Math.max(0, Math.floor(remaining / (1000 * 60))); // minutes
+      // } else {
+      //   const expiryTime = new Date(article.publishDate.getTime() + 24 * 60 * 60 * 1000);
+      //   const remaining = expiryTime - now;
+      //   timeRemaining = Math.max(0, Math.floor(remaining / (1000 * 60))); // minutes
+      // }
+
+      return {
+        ...article.toObject(),
+        // breakingTimeRemaining: timeRemaining,
+        // isBreakingActive: timeRemaining > 0
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        breakingNews: formattedBreakingNews,
+        center: {
+          featured: featuredArticle,
+          topStory: topStory,
+          regularArticles: regularArticles,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(totalRegularArticles / parseInt(limit)),
+            totalArticles: totalRegularArticles,
+            limit: parseInt(limit),
+            hasMore: skip + regularArticles.length < totalRegularArticles,
+          },
+        },
+        trending: trendingArticles,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error fetching home page data",
+    });
+  }
+};
+
 export const getAllArticles = async (req, res) => {
   try {
     const {
@@ -184,7 +299,12 @@ export const getAllArticles = async (req, res) => {
       isBreaking,
       isTrending,
       search,
+      home,
     } = req.query;
+
+    if (home === "true") {
+      return await getHomePageData(req, res);
+    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     let query = {};

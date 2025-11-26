@@ -10,61 +10,53 @@ import { useEffect, useState } from "react";
 import { genericGetApi, genericPostApi } from "./Helper";
 
 export default function Page() {
-  const [articles, setArticles] = useState([]);
-  const [breakingArticle, setBreakingArticle] = useState(null);
+  const [breakingNews, setBreakingNews] = useState([]);
+  const [featuredArticle, setFeaturedArticle] = useState(null);
+  const [topStory, setTopStory] = useState(null);
+  const [regularArticles, setRegularArticles] = useState([]);
   const [trendingArticles, setTrendingArticles] = useState([]);
-  const [latestArticles, setLatestArticles] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchArticles = async () => {
+  const fetchArticles = async (page = 1) => {
     try {
-      setLoading(true);
-      const [
-        allArticlesResponse,
-        breakingResponse,
-        trendingResponse,
-        latestResponse,
-      ] = await Promise.all([
-        genericGetApi("/api/articles", {
-          status: "published",
-          limit: 20,
-          page: 1,
-        }),
-        genericGetApi("/api/articles", {
-          status: "published",
-          isBreaking: "true",
-          limit: 1,
-        }),
-        genericGetApi("/api/articles", {
-          status: "published",
-          isTrending: "true",
-          limit: 5,
-        }),
-        genericGetApi("/api/articles", {
-          status: "published",
-          limit: 10,
-          page: 1,
-        }),
-      ]);
-
-      if (allArticlesResponse.success) {
-        setArticles(allArticlesResponse.data?.articles || []);
+      if (page === 1) {
+        setLoading(true);
       }
 
-      if (
-        breakingResponse.success &&
-        breakingResponse.data?.articles?.length > 0
-      ) {
-        setBreakingArticle(breakingResponse.data.articles[0]);
-      }
+      const response = await genericGetApi("/api/articles", {
+        home: "true",
+        page: page,
+        limit: 10,
+      });
 
-      if (trendingResponse.success) {
-        setTrendingArticles(trendingResponse.data?.articles || []);
-      }
+      if (response.success) {
+        const { breakingNews: breaking, center, trending } = response.data;
 
-      if (latestResponse.success) {
-        setLatestArticles(latestResponse.data?.articles || []);
+        setBreakingNews(breaking || []);
+
+        if (center) {
+          setFeaturedArticle(center.featured);
+          setTopStory(center.topStory);
+
+          if (page === 1) {
+            setRegularArticles(center.regularArticles || []);
+          } else {
+            setRegularArticles((prev) => [
+              ...prev,
+              ...(center.regularArticles || []),
+            ]);
+          }
+
+          setPagination(center.pagination);
+          setCurrentPage(page);
+        }
+
+        setTrendingArticles(trending || []);
+      } else {
+        setError(response.message || "Failed to fetch articles");
       }
     } catch (error) {
       console.error("Error fetching articles:", error);
@@ -74,9 +66,30 @@ export default function Page() {
     }
   };
 
+  const loadMoreArticles = () => {
+    if (pagination?.hasMore && !loading) {
+      fetchArticles(currentPage + 1);
+    }
+  };
+
   useEffect(() => {
-    fetchArticles();
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 1000
+      ) {
+        loadMoreArticles();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [pagination, loading, currentPage]);
+
+  useEffect(() => {
+    fetchArticles(1);
   }, []);
+
   return (
     <HeroUIProvider>
       <Header />
@@ -88,7 +101,7 @@ export default function Page() {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-              <p className="ml-4 text-gray-600">Loading articles...</p>
+              {/* <p className="ml-4 text-gray-600">Loading articles...</p> */}
             </div>
           ) : error ? (
             <div className="text-center py-12">
@@ -98,7 +111,7 @@ export default function Page() {
               </Button>
             </div>
           ) : (
-            <NewsGrid articles={articles} />
+            <NewsGrid articles={regularArticles.slice(0, 6)} />
           )}
         </section>
 
@@ -109,7 +122,18 @@ export default function Page() {
           <NewsGrid />
         </section> */}
 
-        <Layout />
+        {!loading && !error && (
+          <Layout
+            breakingNews={breakingNews}
+            featuredArticle={featuredArticle}
+            topStory={topStory}
+            regularArticles={regularArticles}
+            trendingArticles={trendingArticles}
+            loadMore={loadMoreArticles}
+            hasMore={pagination?.hasMore}
+            isLoadingMore={loading && currentPage > 1}
+          />
+        )}
       </main>
 
       <Footer />
