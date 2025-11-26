@@ -289,6 +289,41 @@ const getHomePageData = async (req, res) => {
   }
 };
 
+export const getArticleById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid article ID format",
+      });
+    }
+
+    const article = await Article.findById(id).populate(
+      "category",
+      "name slug parent level"
+    );
+
+    if (!article) {
+      return res.status(404).json({
+        success: false,
+        message: "Article not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: article,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error fetching article",
+    });
+  }
+};
+
 export const getAllArticles = async (req, res) => {
   try {
     const {
@@ -383,7 +418,28 @@ export const getArticleBySlug = async (req, res) => {
 export const updateArticle = async (req, res) => {
   try {
     const { id } = req.params;
+    const {
+      title,
+      excerpt,
+      content,
+      category,
+      youtubeVideo,
+      tags,
+      author,
+      status,
+      isBreaking,
+      isTrending,
+      isFeatured,
+      isTopStory,
+      isSubStory,
+      isEditorsPick,
+      metaTitle,
+      metaDescription,
+      publishDate,
+      deleteImage,
+    } = req.body;
 
+    // Find the article first
     const article = await Article.findById(id);
     if (!article) {
       return res.status(404).json({
@@ -392,53 +448,97 @@ export const updateArticle = async (req, res) => {
       });
     }
 
-    if (req.file) {
-      try {
-        if (article.featuredImage) {
-          try {
-            const urlParts = article.featuredImage.split("/");
-            const publicIdWithExt = urlParts.slice(-2).join("/").split(".")[0];
-            const publicId = `news-app/articles/${publicIdWithExt}`;
-            await deleteFromCloudinary(publicId);
-          } catch (deleteError) {
-            console.log("Could not delete old image:", deleteError.message);
-          }
-        }
+    // Validate category if it's being updated
+    if (category && category !== article.category.toString()) {
+      const categoryExists = await Category.findById(category);
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Category does not exist",
+        });
+      }
+    }
 
+    // Handle featured image updates
+    if (req.file) {
+      // New image uploaded - delete old image if it exists
+      if (article.featuredImage) {
+        try {
+          const urlParts = article.featuredImage.split("/");
+          const publicIdWithExt = urlParts.slice(-2).join("/").split(".")[0];
+          const publicId = `news-app/articles/${publicIdWithExt}`;
+          await deleteFromCloudinary(publicId);
+        } catch (deleteError) {
+          console.log("Could not delete old image:", deleteError.message);
+        }
+      }
+
+      // Upload new image
+      try {
         const result = await uploadToCloudinary(req.file, "news-app/articles");
-        req.body.featuredImage = result.secure_url;
+        article.featuredImage = result.secure_url;
       } catch (uploadError) {
         return res.status(400).json({
           success: false,
           message: "Failed to upload image: " + uploadError.message,
         });
       }
-    }
-
-    Object.keys(req.body).forEach((key) => {
-      if (req.body[key] !== undefined && key !== "tags") {
-        if (
-          [
-            "isBreaking",
-            "isTrending",
-            "isFeatured",
-            "isTopStory",
-            "isSubStory",
-            "isEditorsPick",
-          ].includes(key)
-        ) {
-          article[key] = req.body[key] === "true" || req.body[key] === true;
-        } else {
-          article[key] = req.body[key];
+    } else if (deleteImage === "true" || deleteImage === true) {
+      // Delete image requested without new upload
+      if (article.featuredImage) {
+        try {
+          const urlParts = article.featuredImage.split("/");
+          const publicIdWithExt = urlParts.slice(-2).join("/").split(".")[0];
+          const publicId = `news-app/articles/${publicIdWithExt}`;
+          await deleteFromCloudinary(publicId);
+        } catch (deleteError) {
+          console.log("Could not delete image:", deleteError.message);
         }
       }
-    });
+      article.featuredImage = "";
+    } else if (req.body.featuredImage !== undefined) {
+      // Featured image URL provided directly
+      article.featuredImage = req.body.featuredImage;
+    }
 
-    if (req.body.tags !== undefined) {
+    // Update other fields
+    if (title !== undefined) article.title = title;
+    if (excerpt !== undefined) article.excerpt = excerpt;
+    if (content !== undefined) article.content = content;
+    if (category !== undefined) article.category = category;
+    if (youtubeVideo !== undefined) article.youtubeVideo = youtubeVideo;
+    if (author !== undefined) article.author = author;
+    if (status !== undefined) article.status = status;
+    if (metaTitle !== undefined) article.metaTitle = metaTitle;
+    if (metaDescription !== undefined) article.metaDescription = metaDescription;
+    if (publishDate !== undefined) {
+      article.publishDate = publishDate ? new Date(publishDate) : new Date();
+    }
+
+    // Handle boolean fields
+    if (isBreaking !== undefined) {
+      article.isBreaking = isBreaking === "true" || isBreaking === true;
+    }
+    if (isTrending !== undefined) {
+      article.isTrending = isTrending === "true" || isTrending === true;
+    }
+    if (isFeatured !== undefined) {
+      article.isFeatured = isFeatured === "true" || isFeatured === true;
+    }
+    if (isTopStory !== undefined) {
+      article.isTopStory = isTopStory === "true" || isTopStory === true;
+    }
+    if (isSubStory !== undefined) {
+      article.isSubStory = isSubStory === "true" || isSubStory === true;
+    }
+    if (isEditorsPick !== undefined) {
+      article.isEditorsPick = isEditorsPick === "true" || isEditorsPick === true;
+    }
+
+    // Handle tags
+    if (tags !== undefined) {
       article.tags =
-        typeof req.body.tags === "string"
-          ? JSON.parse(req.body.tags)
-          : req.body.tags;
+        typeof tags === "string" ? JSON.parse(tags) : tags;
     }
 
     await article.save();
@@ -473,7 +573,7 @@ export const deleteArticle = async (req, res) => {
       try {
         const urlParts = article.featuredImage.split("/");
         const publicIdWithExt = urlParts.slice(-2).join("/").split(".")[0];
-        const publicId = `news-app/articles/${publicIdWithExt}`;
+        const publicId = `news-app/${publicIdWithExt}`;
         await deleteFromCloudinary(publicId);
       } catch (deleteError) {
         console.log("Could not delete image:", deleteError.message);

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
+import { useSearchParams } from "next/navigation";
 import {
   Card,
   CardHeader,
@@ -21,6 +22,7 @@ import {
   ModalFooter,
   useDisclosure,
   toast,
+  Spinner,
 } from "@heroui/react";
 import {
   Save,
@@ -52,7 +54,7 @@ import {
 // Dynamically import ReactQuill to avoid SSR issues
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
-export default function ArticleEditor({ articleId = null }) {
+export default function ArticleEditor() {
   const {
     isOpen: isPreviewOpen,
     onOpen: onPreviewOpen,
@@ -72,6 +74,8 @@ export default function ArticleEditor({ articleId = null }) {
   const [imageUrl, setImageUrl] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const searchParams = useSearchParams()
+  const articleId = searchParams.get("articleId")
 
   const [article, setArticle] = useState({
     title: "",
@@ -107,7 +111,62 @@ export default function ArticleEditor({ articleId = null }) {
     metaTitle: "",
     metaDescription: "",
     articleFeatures: "", // Add this for Article Features validation
-  });
+  });// In Create-Article.jsx, uncomment and update the loadArticle function:
+
+  const loadArticle = async () => {
+    if (!articleId) return; // Add this check
+
+    try {
+      setLoading(true); // Add loading state
+      const response = await genericGetApi(`/api/articles/${articleId}`); // Use /id/ endpoint
+      if (response.success && response.data) {
+        const articleData = response.data;
+        setArticle({
+          title: articleData.title || "",
+          content: articleData.content || "",
+          excerpt: articleData.excerpt || "",
+          category: articleData.category?._id || "",
+          tags: articleData.tags || [],
+          featuredImage: articleData.featuredImage || "",
+          youtubeVideo: articleData.youtubeVideo || "",
+          status: articleData.status || "draft",
+          isBreaking: Boolean(articleData.isBreaking), // Ensure boolean
+          isTrending: Boolean(articleData.isTrending), // Ensure boolean
+          isFeatured: Boolean(articleData.isFeatured), // Ensure boolean
+          isTopStory: Boolean(articleData.isTopStory), // Ensure boolean
+          isSubStory: Boolean(articleData.isSubStory), // Ensure boolean
+          isEditorsPick: Boolean(articleData.isEditorsPick), // Ensure boolean
+          metaTitle: articleData.metaTitle || "",
+          metaDescription: articleData.metaDescription || "",
+          publishDate: articleData.publishDate
+            ? new Date(articleData.publishDate).toISOString().split("T")[0]
+            : new Date().toISOString().split("T")[0],
+          author: articleData.author || "Current User",
+        });
+
+        // Set category path if needed
+        if (articleData.category) {
+          // Handle category path setup here
+        }
+
+        setImageUrl(articleData.featuredImage || "");
+      }
+    } catch (error) {
+      console.error("Failed to load article:", error);
+    } finally {
+      setLoading(false); // Add finally block
+    }
+  };
+
+  // Remove the duplicate useEffect on line 155-157
+  // Keep only this one:
+  useEffect(() => {
+    loadCategories();
+    if (articleId) {
+      loadArticle();
+    }
+  }, [articleId]); // This will run when articleId changes
+
 
   // Quill modules configuration
   const modules = useMemo(
@@ -466,8 +525,7 @@ export default function ArticleEditor({ articleId = null }) {
 
       if (response.success) {
         toast.success(
-          `Article ${
-            status === "draft" ? "saved as draft" : "published"
+          `Article ${status === "draft" ? "saved as draft" : "published"
           } successfully!`
         );
         if (!articleId && status === "published") {
@@ -526,7 +584,7 @@ export default function ArticleEditor({ articleId = null }) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading article...</p>
+          <Spinner color="default" label="Default" labelColor="foreground" />
         </div>
       </div>
     );
@@ -637,7 +695,7 @@ export default function ArticleEditor({ articleId = null }) {
           </Card>
 
           {/* Content Editor with React Quill */}
-          <Card className="bg-white border border-gray-200 shadow-sm">  
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardBody className="p-0">
               <div className="quill-editor" data-field="content">
                 <ReactQuill
@@ -676,9 +734,8 @@ export default function ArticleEditor({ articleId = null }) {
 
                 <div
                   data-field="featuredImage"
-                  className={`border-2 ${
-                    errors.featuredImage ? "border-danger" : "border-zinc-300"
-                  } bg-zinc-50 border-dashed rounded-lg p-4 h-full flex flex-col justify-center items-center text-center transition relative cursor-pointer hover:border-gray-400`}
+                  className={`border-2 ${errors.featuredImage ? "border-danger" : "border-zinc-300"
+                    } bg-zinc-50 border-dashed rounded-lg p-4 h-full flex flex-col justify-center items-center text-center transition relative cursor-pointer hover:border-gray-400`}
                   onClick={() => {
                     if (!article.featuredImage) {
                       document.getElementById("featured-image-input").click();
@@ -907,7 +964,7 @@ export default function ArticleEditor({ articleId = null }) {
               {errors.articleFeatures && (
                 <p className="text-danger text-sm mb-2">{errors.articleFeatures}</p>
               )}
-              
+
               {/* Breaking News */}
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -1105,7 +1162,7 @@ export default function ArticleEditor({ articleId = null }) {
                   value={article.author}
                   onChange={(e) => handleInputChange("author", e.target.value)}
                   variant="bordered"
-                  // Remove isRequired, isInvalid, and errorMessage props
+                // Remove isRequired, isInvalid, and errorMessage props
                 />
               </div>
             </CardBody>

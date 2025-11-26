@@ -4,6 +4,7 @@ import {
   deleteArticle,
   getAllArticles,
   getArticleBySlug,
+  getArticleById,
   getArticlesByCategoryPath,
   updateArticle,
 } from "../controllers/article.controller.js";
@@ -23,13 +24,11 @@ router.get(/^\/category\/(.+)$/, (req, res, next) => {
   getArticlesByCategoryPath(req, res, next);
 });
 
+router.get("/:id", getArticleById);
 router.get("/", getAllArticles);
-
 router.get("/:slug", getArticleBySlug);
-
 router.put("/:id", uploadSingle, updateArticle);
 router.patch("/:id", uploadSingle, updateArticle);
-
 router.delete("/:id", deleteArticle);
 
 export default router;
