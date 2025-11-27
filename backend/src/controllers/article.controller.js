@@ -312,9 +312,14 @@ export const getArticleById = async (req, res) => {
       });
     }
 
+    const categoryPathIds = await getCategoryPathIds(article.category._id);
+
+    const articleData = article.toObject();
+    articleData.categoryPath = categoryPathIds;
+
     res.status(200).json({
       success: true,
-      data: article,
+      data: articleData,
     });
   } catch (error) {
     res.status(500).json({
@@ -637,3 +642,23 @@ const getCategoryPathInfo = async (categoryId) => {
     fullPath: path.map((p) => p.name).join(" > "),
   };
 };
+
+const getCategoryPathIds = async (categoryId) => {
+  const path = [];
+  let current = await Category.findById(categoryId);
+
+  if (!current) return path;
+
+  const tempPath = [];
+  while (current) {
+    tempPath.push(current._id.toString());
+    if (current.parent) {
+      current = await Category.findById(current.parent);
+    } else {
+      current = null;
+    }
+  }
+
+  return tempPath.reverse();
+};
+

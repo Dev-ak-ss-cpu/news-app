@@ -50,6 +50,7 @@ import {
   genericPutApiWithFile,
   genericPostApiWithFile,
 } from "@/app/Helper";
+import ArticlePreviewPopup from "./Article-Preview-Popup";
 
 // Dynamically import ReactQuill to avoid SSR issues
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -144,11 +145,34 @@ export default function ArticleEditor() {
           author: articleData.author || "Current User",
         });
 
-        // Set category path if needed
-        if (articleData.category) {
-          // Handle category path setup here
-        }
+        if (articleData.categoryPath && articleData.categoryPath.length > 0) {
+          const loadCategoryLevels = async (path) => {
+            const levels = [];
 
+            const rootResponse = await genericGetApi("/api/categories", { level: 0 });
+            if (rootResponse.success) {
+              levels.push(rootResponse.data);
+
+              for (let i = 0; i < path.length - 1; i++) {
+                const parentId = path[i];
+                const childrenResponse = await genericGetApi("/api/categories", {
+                  parent: parentId,
+                });
+                if (childrenResponse.success && childrenResponse.data.length > 0) {
+                  levels.push(childrenResponse.data);
+                } else {
+                  break;
+                }
+              }
+            }
+
+            return levels;
+          };
+
+          const categoryLevelsData = await loadCategoryLevels(articleData.categoryPath);
+          setCategoryPath(articleData.categoryPath);
+          setCategoryLevels(categoryLevelsData);
+        }
         setImageUrl(articleData.featuredImage || "");
       }
     } catch (error) {
@@ -584,7 +608,6 @@ export default function ArticleEditor() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
-          <Spinner color="default" label="Default" labelColor="foreground" />
         </div>
       </div>
     );
@@ -717,7 +740,7 @@ export default function ArticleEditor() {
 
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             {/* Featured Image */}
-            <Card className="flex-1 xl:min-h-96 xl:h-145 bg-white border border-gray-200 shadow-sm">
+            <Card className="flex-1 xl:min-h-96 xl:h-160 bg-white border border-gray-200 shadow-sm">
               <CardHeader>
                 <h3 className="text-lg font-semibold text-black">
                   Featured Image <span className="text-red-500">*</span>
@@ -789,7 +812,7 @@ export default function ArticleEditor() {
             </Card>
 
             {/* YouTube Video */}
-            <Card className="flex-1 xl:min-h-96 xl:h-145 bg-white border border-gray-200 shadow-sm">
+            <Card className="flex-1 xl:min-h-96 xl:h-160 bg-white border border-gray-200 shadow-sm">
               <CardHeader>
                 <h3 className="text-lg font-semibold text-black">
                   YouTube Video
@@ -1170,75 +1193,11 @@ export default function ArticleEditor() {
         </div>
       </div>
 
-      {/* Preview Modal */}
-      <Modal
+      <ArticlePreviewPopup
         isOpen={isPreviewOpen}
         onOpenChange={onPreviewOpenChange}
-        size="5xl"
-      >
-        <ModalContent>
-          <ModalHeader>Article Preview</ModalHeader>
-          <ModalBody>
-            <div className="prose max-w-none">
-              <h1>{article.title || "Untitled Article"}</h1>
-              {article.excerpt && (
-                <p className="text-lg text-gray-600 italic">
-                  {article.excerpt}
-                </p>
-              )}
-
-              {article.youtubeVideo && (
-                <div className="my-6">
-                  <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-                    <img
-                      src={youtubeThumbnail}
-                      alt="YouTube Video"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-red-600 rounded-full p-4 hover:bg-red-700 transition-colors">
-                        <Play size={32} className="text-white" />
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-2">YouTube Video</p>
-                </div>
-              )}
-
-              {article.featuredImage && !article.youtubeVideo && (
-                <img
-                  src={article.featuredImage}
-                  alt="Featured"
-                  className="w-full h-64 object-cover rounded-lg my-4"
-                />
-              )}
-
-              <div className="flex gap-2 mb-4">
-                {article.isBreaking && (
-                  <Chip color="danger" variant="flat">
-                    Breaking News
-                  </Chip>
-                )}
-                {article.isTrending && (
-                  <Chip color="primary" variant="flat">
-                    Trending
-                  </Chip>
-                )}
-              </div>
-              <div className="text-gray-600 mb-6">
-                By {article.author} •{" "}
-                {new Date(article.publishDate).toLocaleDateString()}
-              </div>
-              <div
-                className="ql-editor"
-                dangerouslySetInnerHTML={{
-                  __html: article.content || "<p>No content yet.</p>",
-                }}
-              />
-            </div>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+        article={article}
+      />
 
       {/* YouTube Video Modal */}
       <Modal isOpen={isVideoModalOpen} onOpenChange={onVideoModalOpenChange}>
