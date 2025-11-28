@@ -209,7 +209,7 @@ const getHomePageData = async (req, res) => {
 
     // Fetch top stories (center)
     const topStory = await Article.find({
-      status: "published",
+      status: 1,
       isTopStory: true,
       _id: { $ne: featuredArticle?._id },
     })
@@ -241,7 +241,7 @@ const getHomePageData = async (req, res) => {
       .limit(parseInt(limit));
 
     const totalRegularArticles = await Article.countDocuments({
-      status: "published",
+      status: 1,
       _id: { $nin: excludedIds },
     });
 
@@ -664,4 +664,3 @@ const getCategoryPathIds = async (categoryId) => {
 
   return tempPath.reverse();
 };
-
