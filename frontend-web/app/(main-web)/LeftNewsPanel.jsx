@@ -1,6 +1,7 @@
 import { Card, CardBody } from "@heroui/react";
 import { TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { LiveStreamPlayer } from "../Components/LiveStreamPlayer";
 
 export default function LeftNewsPanel({ trendingArticles = [] }) {
   const trendingNews = [
@@ -97,21 +98,8 @@ export default function LeftNewsPanel({ trendingArticles = [] }) {
       <Card className="bg-white border border-gray-200 shadow-sm">
         <CardBody className="p-4">
           <h3 className="font-bold text-lg text-gray-900 mb-4">लाइव टीवी</h3>
-          <div className="aspect-video bg-black rounded-lg relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-white font-bold">▶</span>
-                </div>
-                <p className="text-white text-sm">लाइव न्यूज़</p>
-              </div>
-            </div>
-            <div className="absolute top-2 left-2">
-              <span className="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
-                LIVE
-              </span>
-            </div>
-          </div>
+
+          <LiveStreamPlayer videoId="rEKifG2XUZg" small={true} />
         </CardBody>
       </Card>
     </div>

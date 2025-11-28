@@ -207,14 +207,15 @@ const getHomePageData = async (req, res) => {
       .populate("category", "name slug parent level")
       .sort({ publishDate: -1 });
 
-    // Fetch top story (center)
-    const topStory = await Article.findOne({
-      status: 1,
+    // Fetch top stories (center)
+    const topStory = await Article.find({
+      status: "published",
       isTopStory: true,
       _id: { $ne: featuredArticle?._id },
     })
       .populate("category", "name slug parent level")
-      .sort({ publishDate: -1 });
+      .sort({ publishDate: -1 })
+      .limit(5);
 
     // Fetch trending articles (right panel)
     const trendingArticles = await Article.find({
@@ -226,7 +227,8 @@ const getHomePageData = async (req, res) => {
       .limit(5);
 
     // Get IDs to exclude from regular articles
-    const excludedIds = [featuredArticle?._id, topStory?._id].filter(Boolean);
+    const topStoryIds = topStory.map((story) => story._id);
+    const excludedIds = [featuredArticle?._id, ...topStoryIds].filter(Boolean);
 
     // Fetch regular articles (center - paginated)
     const regularArticles = await Article.find({
@@ -515,7 +517,8 @@ export const updateArticle = async (req, res) => {
     if (author !== undefined) article.author = author;
     if (status !== undefined) article.status = parseInt(status);
     if (metaTitle !== undefined) article.metaTitle = metaTitle;
-    if (metaDescription !== undefined) article.metaDescription = metaDescription;
+    if (metaDescription !== undefined)
+      article.metaDescription = metaDescription;
     if (publishDate !== undefined) {
       article.publishDate = publishDate ? new Date(publishDate) : new Date();
     }
@@ -537,13 +540,13 @@ export const updateArticle = async (req, res) => {
       article.isSubStory = isSubStory === "true" || isSubStory === true;
     }
     if (isEditorsPick !== undefined) {
-      article.isEditorsPick = isEditorsPick === "true" || isEditorsPick === true;
+      article.isEditorsPick =
+        isEditorsPick === "true" || isEditorsPick === true;
     }
 
     // Handle tags
     if (tags !== undefined) {
-      article.tags =
-        typeof tags === "string" ? JSON.parse(tags) : tags;
+      article.tags = typeof tags === "string" ? JSON.parse(tags) : tags;
     }
 
     await article.save();

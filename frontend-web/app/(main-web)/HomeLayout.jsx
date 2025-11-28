@@ -5,7 +5,7 @@ import MiddleNewsSection from "./MiddleNewsSection";
 export default function Layout({
   breakingNews = [],
   featuredArticle = null,
-  topStory = null,
+  topStory = [],
   regularArticles = [],
   trendingArticles = [],
   loadMore,
@@ -25,7 +25,6 @@ export default function Layout({
           <div className="flex-1 min-w-0">
             <MiddleNewsSection
               featuredArticle={featuredArticle}
-              topStory={topStory}
               regularArticles={regularArticles}
               loadMore={loadMore}
               hasMore={hasMore}

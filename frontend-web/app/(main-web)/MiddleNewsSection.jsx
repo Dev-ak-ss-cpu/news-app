@@ -5,10 +5,12 @@ import CategoryCard from "../Components/Category";
 import HeroSection from "./HeroSection";
 import Link from "next/link";
 import { getYouTubeId, getYouTubeThumbnail } from "../Helper";
+import { LiveStreamPlayer } from "../Components/LiveStreamPlayer";
 
 export default function MiddleNewsSection({
   featuredArticle = null,
-  topStory = null,
+  topStory = [],
+  trendingArticles = [],
   regularArticles = [],
   loadMore,
   hasMore,
@@ -31,31 +33,110 @@ export default function MiddleNewsSection({
     return article?.featuredImage && article.featuredImage.trim() !== "";
   };
 
-  // Separate articles by type
-  const imageArticles = [];
-  const videoArticles = [];
-  const regularOnlyArticles = [];
+  // Build the article sequence
+  const articleSequence = [];
 
-  // Add featured article if it has image
+  // 1. First: Featured article (always as image if available)
   if (featuredArticle && hasImage(featuredArticle)) {
-    imageArticles.push(featuredArticle);
+    articleSequence.push({
+      type: "image",
+      article: featuredArticle,
+      priority: "featured",
+    });
   }
 
-  // Add top story if it has video, otherwise check if it has image
-  if (topStory) {
-    if (hasVideo(topStory)) {
-      videoArticles.push(topStory);
-    } else if (hasImage(topStory)) {
-      imageArticles.push(topStory);
+  // 2. Second: Featured article with video (if available), or another featured image, or top story
+  // Check if featured article has video (and we haven't added it yet)
+  if (
+    featuredArticle &&
+    hasVideo(featuredArticle) &&
+    articleSequence.length === 1
+  ) {
+    articleSequence.push({
+      type: "video",
+      article: featuredArticle,
+      priority: "featured",
+    });
+  } else if (
+    featuredArticle &&
+    hasImage(featuredArticle) &&
+    articleSequence.length === 1
+  ) {
+    // If featured article has another image variant, add it
+    articleSequence.push({
+      type: "image",
+      article: featuredArticle,
+      priority: "featured",
+    });
+  } else if (topStory && topStory.length > 0) {
+    // Add first top story
+    const firstTopStory = topStory[0];
+    if (hasVideo(firstTopStory)) {
+      articleSequence.push({
+        type: "video",
+        article: firstTopStory,
+        priority: "topStory",
+      });
+    } else if (hasImage(firstTopStory)) {
+      articleSequence.push({
+        type: "image",
+        article: firstTopStory,
+        priority: "topStory",
+      });
     }
   }
 
-  // Process regular articles
+  // 3. Add remaining top stories
+  const usedTopStoryIds = new Set(
+    articleSequence
+      .filter((a) => a.priority === "topStory")
+      .map((a) => a.article._id)
+  );
+  topStory.forEach((story) => {
+    if (!usedTopStoryIds.has(story._id)) {
+      if (hasVideo(story)) {
+        articleSequence.push({
+          type: "video",
+          article: story,
+          priority: "topStory",
+        });
+      } else if (hasImage(story)) {
+        articleSequence.push({
+          type: "image",
+          article: story,
+          priority: "topStory",
+        });
+      }
+    }
+  });
+
+  // 4. Add trending articles
+  trendingArticles.forEach((article) => {
+    if (hasVideo(article)) {
+      articleSequence.push({
+        type: "video",
+        article: article,
+        priority: "trending",
+      });
+    } else if (hasImage(article)) {
+      articleSequence.push({
+        type: "image",
+        article: article,
+        priority: "trending",
+      });
+    }
+  });
+
+  // 5. Process regular articles - separate by type
+  const regularImageArticles = [];
+  const regularVideoArticles = [];
+  const regularOnlyArticles = [];
+
   regularArticles.forEach((article) => {
     if (hasVideo(article)) {
-      videoArticles.push(article);
+      regularVideoArticles.push(article);
     } else if (hasImage(article)) {
-      imageArticles.push(article);
+      regularImageArticles.push(article);
     } else {
       regularOnlyArticles.push(article);
     }
@@ -66,20 +147,52 @@ export default function MiddleNewsSection({
   let imageIndex = 0;
   let videoIndex = 0;
   let articleIndex = 0;
-  const articlesPerBlock = 3; // Number of articles to show after each image/video pair
+  const articlesPerBlock = 3;
 
-  // Create 2-3 pattern blocks
+  // First, use the article sequence (featured, top stories, trending)
+  let sequenceIndex = 0;
+
+  // Create pattern blocks starting with the article sequence
   const maxPatterns = 3;
   for (let i = 0; i < maxPatterns; i++) {
     const block = {
-      imageArticle:
-        imageIndex < imageArticles.length ? imageArticles[imageIndex++] : null,
-      videoArticle:
-        videoIndex < videoArticles.length ? videoArticles[videoIndex++] : null,
+      imageArticle: null,
+      videoArticle: null,
       articles: [],
     };
 
-    // Add articles for this block
+    // Add image article from sequence first
+    if (sequenceIndex < articleSequence.length) {
+      const seqItem = articleSequence[sequenceIndex];
+      if (seqItem.type === "image") {
+        block.imageArticle = seqItem.article;
+        sequenceIndex++;
+      } else if (seqItem.type === "video") {
+        block.videoArticle = seqItem.article;
+        sequenceIndex++;
+      }
+    }
+
+    // If no image from sequence, try regular image articles
+    if (!block.imageArticle && imageIndex < regularImageArticles.length) {
+      block.imageArticle = regularImageArticles[imageIndex++];
+    }
+
+    // Add video article if not already added
+    if (!block.videoArticle && sequenceIndex < articleSequence.length) {
+      const seqItem = articleSequence[sequenceIndex];
+      if (seqItem.type === "video") {
+        block.videoArticle = seqItem.article;
+        sequenceIndex++;
+      }
+    }
+
+    // If no video from sequence, try regular video articles
+    if (!block.videoArticle && videoIndex < regularVideoArticles.length) {
+      block.videoArticle = regularVideoArticles[videoIndex++];
+    }
+
+    // Add regular articles for this block
     for (
       let j = 0;
       j < articlesPerBlock && articleIndex < regularOnlyArticles.length;
@@ -95,19 +208,22 @@ export default function MiddleNewsSection({
   }
 
   // Remaining articles (after pattern blocks)
+  const remainingSequence = articleSequence.slice(sequenceIndex);
   const remainingArticles = [
-    ...imageArticles.slice(imageIndex),
-    ...videoArticles.slice(videoIndex),
+    ...remainingSequence.map((item) => item.article),
+    ...regularImageArticles.slice(imageIndex),
+    ...regularVideoArticles.slice(videoIndex),
     ...regularOnlyArticles.slice(articleIndex),
   ];
 
-  // Render Image Article Card
+  // Render Image Article Card with overlay
+  // Render Image Article Card with overlay
   const renderImageArticle = (article) => {
     if (!article) return null;
     return (
       <Link key={article._id} href={`/article/${article.slug}`}>
-        <Card className="bg-white border border-gray-200 shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow">
-          <div className="aspect-[16/9] bg-gray-200 relative">
+        <Card className="bg-white border-0 shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow rounded-xl">
+          <div className="aspect-[16/9] bg-gray-200 relative rounded-xl overflow-hidden">
             {article.featuredImage && (
               <img
                 src={article.featuredImage}
@@ -115,28 +231,50 @@ export default function MiddleNewsSection({
                 className="w-full h-full object-cover"
               />
             )}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-              <div className="flex items-center text-white/80 text-sm mb-2">
+            {/* Breaking News Badge - positioned at top-left */}
+            {article.isBreaking && (
+              <div className="absolute top-3 left-3 z-10">
+                <span className="bg-red-600 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-lg">
+                  ब्रेकिंग न्यूज़
+                </span>
+              </div>
+            )}
+            {/* Dark overlay gradient from bottom */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/60 to-transparent"></div>
+            {/* Content overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+              {/* Category and Date */}
+              <div className="flex items-center text-white/90 text-xs mb-3">
                 {article.category && (
                   <>
-                    <MapPin size={16} className="mr-1" />
-                    <span className="mr-4">{article.category.name}</span>
+                    <MapPin size={14} className="mr-1.5" />
+                    <span className="mr-3 font-medium">
+                      {article.category.name}
+                    </span>
                   </>
                 )}
-                <Calendar size={16} className="mr-1" />
-                <span>
+                <Calendar size={14} className="mr-1.5" />
+                <span className="font-medium">
                   {new Date(article.publishDate).toLocaleDateString()}
                 </span>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2 line-clamp-2">
+              {/* Title */}
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-2 line-clamp-2 leading-tight">
                 {article.title}
               </h2>
+              {/* Excerpt */}
+              {article.excerpt && (
+                <p className="text-white/95 text-sm md:text-base line-clamp-2 mb-3 leading-relaxed">
+                  {article.excerpt}
+                </p>
+              )}
+              {/* Hashtags */}
               {article.tags && article.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {article.tags.slice(0, 3).map((tag, index) => (
                     <span
                       key={index}
-                      className="text-white/90 text-sm hover:underline cursor-pointer"
+                      className="text-white text-sm font-medium hover:underline cursor-pointer"
                     >
                       #{tag}
                     </span>
@@ -144,13 +282,6 @@ export default function MiddleNewsSection({
                 </div>
               )}
             </div>
-            {article.isBreaking && (
-              <div className="absolute top-4 left-4">
-                <span className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold">
-                  ब्रेकिंग न्यूज़
-                </span>
-              </div>
-            )}
           </div>
         </Card>
       </Link>
@@ -242,6 +373,7 @@ export default function MiddleNewsSection({
                 <Link
                   key={article._id || index}
                   href={`/article/${article.slug}`}
+                  className="h-full block"
                 >
                   <NewsCard
                     title={article.title}
@@ -261,10 +393,10 @@ export default function MiddleNewsSection({
 
       {/* Remaining Articles Section */}
       {remainingArticles.length > 0 && (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {remainingArticles.map((article, index) => {
-              // If it's a video or image article, render it directly (already has Link)
+              // If it's a video article, render video card
               if (hasVideo(article)) {
                 return (
                   <div key={article._id || index} className="h-full">
@@ -272,17 +404,19 @@ export default function MiddleNewsSection({
                   </div>
                 );
               } else if (hasImage(article)) {
+                // If it has image, render with overlay (like featured) - same style as main cards
                 return (
                   <div key={article._id || index} className="h-full">
                     {renderImageArticle(article)}
                   </div>
                 );
               } else {
-                // Regular article - wrap NewsCard with Link
+                // Regular article without image - use NewsCard
                 return (
                   <Link
                     key={article._id || index}
                     href={`/article/${article.slug}`}
+                    className="h-full block"
                   >
                     <NewsCard
                       title={article.title}
@@ -298,6 +432,7 @@ export default function MiddleNewsSection({
               }
             })}
           </div>
+          <LiveStreamPlayer videoId="rEKifG2XUZg" />
         </div>
       )}
 
