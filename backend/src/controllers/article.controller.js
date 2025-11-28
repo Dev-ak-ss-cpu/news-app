@@ -341,6 +341,7 @@ export const getAllArticles = async (req, res) => {
       isBreaking,
       isTrending,
       search,
+      date,
       home,
     } = req.query;
 
@@ -355,6 +356,7 @@ export const getAllArticles = async (req, res) => {
     if (category) query.category = category;
     if (isBreaking !== undefined) query.isBreaking = isBreaking === "true";
     if (isTrending !== undefined) query.isTrending = isTrending === "true";
+    if (date !== undefined) query.publishDate = new Date(date);
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -371,10 +373,22 @@ export const getAllArticles = async (req, res) => {
 
     const total = await Article.countDocuments(query);
 
+    const newArticles = await Promise.all(
+      articles.map(async (article) => {
+        const categoryPathIds = await getCategoryPathIds(article.category._id);
+
+        const articleData = article.toObject();
+        articleData.categoryPath = categoryPathIds;
+
+        return articleData;
+      })
+    );
+
+
     res.status(200).json({
       success: true,
       data: {
-        articles,
+        newArticles,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(total / parseInt(limit)),

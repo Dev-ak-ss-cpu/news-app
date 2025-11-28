@@ -8,6 +8,7 @@ import Layout from "./(main-web)/HomeLayout";
 import { Button, Calendar, HeroUIProvider } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { genericGetApi, genericPostApi } from "./Helper";
+import {ToastProvider} from "@heroui/toast";
 
 export default function Page() {
   const [breakingNews, setBreakingNews] = useState([]);
@@ -92,6 +93,7 @@ export default function Page() {
 
   return (
     <HeroUIProvider>
+      <ToastProvider/>
       <Header />
       <main>
         {/* <HeroSection /> */}
