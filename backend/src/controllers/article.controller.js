@@ -199,10 +199,10 @@ const getHomePageData = async (req, res) => {
       .limit(5);
 
     // Fetch featured article (center - must have image)
-    const featuredArticle = await Article.findOne({
+    const featuredArticle = await Article.find({
       status: 1,
       isFeatured: true,
-      featuredImage: { $ne: "" },
+      // featuredImage: { $ne: "" },
     })
       .populate("category", "name slug parent level")
       .sort({ publishDate: -1 });
@@ -227,8 +227,11 @@ const getHomePageData = async (req, res) => {
       .limit(5);
 
     // Get IDs to exclude from regular articles
+    const featuredArticleIds = featuredArticle?.map((article) => article._id);
     const topStoryIds = topStory.map((story) => story._id);
-    const excludedIds = [featuredArticle?._id, ...topStoryIds].filter(Boolean);
+    const excludedIds = [...featuredArticleIds, ...topStoryIds].filter(
+      Boolean
+    );
 
     // Fetch regular articles (center - paginated)
     const regularArticles = await Article.find({
@@ -383,7 +386,6 @@ export const getAllArticles = async (req, res) => {
         return articleData;
       })
     );
-
 
     res.status(200).json({
       success: true,

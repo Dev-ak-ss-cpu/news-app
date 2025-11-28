@@ -113,7 +113,7 @@ export default function Page() {
               </Button>
             </div>
           ) : (
-            <NewsGrid articles={topStory?.slice(0, 6)} />
+            <NewsGrid articles={featuredArticle?.slice(0, 6)} />
           )}
         </section>
 

@@ -97,10 +97,9 @@ export const createOrUpdateCategory = async (req, res) => {
   }
 };
 
-
 export const getAllCategories = async (req, res) => {
   try {
-    const { parent, level, includeChildren } = req.query;
+    const { parent, level, includeChildren, includeArticleCount } = req.query;
 
     let query = {};
 
@@ -117,6 +116,24 @@ export const getAllCategories = async (req, res) => {
     let categories = await Category.find(query)
       .populate("parent", "name slug")
       .sort({ createdAt: -1 });
+
+    if (includeArticleCount === "true") {
+      const { Article } = await import("../models/article.model.js");
+
+      categories = await Promise.all(
+        categories.map(async (category) => {
+          const categoryIds = await getAllCategoryIdsForCount(category._id);
+          const articleCount = await Article.countDocuments({
+            category: { $in: categoryIds },
+            status: 1,
+          });
+
+          const categoryObj = category.toObject();
+          categoryObj.articleCount = articleCount;
+          return categoryObj;
+        })
+      );
+    }
 
     if (includeChildren === "true") {
       categories = await Category.populate(categories, {
@@ -171,4 +188,17 @@ export const deleteCategory = async (req, res) => {
       message: error.message || "Error deleting category",
     });
   }
+};
+
+// Helper function to get all category IDs including children (for counting articles)
+const getAllCategoryIdsForCount = async (categoryId) => {
+  const categoryIds = [categoryId];
+  const children = await Category.find({ parent: categoryId });
+
+  for (const child of children) {
+    const childIds = await getAllCategoryIdsForCount(child._id);
+    categoryIds.push(...childIds);
+  }
+
+  return categoryIds;
 };

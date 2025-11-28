@@ -24,6 +24,7 @@ export default function Layout({
           {/* Middle Scrollable Section */}
           <div className="flex-1 min-w-0">
             <MiddleNewsSection
+            topStory={topStory}
               featuredArticle={featuredArticle}
               regularArticles={regularArticles}
               loadMore={loadMore}

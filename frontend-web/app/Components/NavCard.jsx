@@ -12,12 +12,12 @@ export default function NewsCard({
 }) {
   return (
     <Card
-      className={`bg-white border border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col rounded-xl overflow-hidden ${
+      className={`bg-white border border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col rounded-xl overflow-hidden h-full ${
         variant === "highlighted" ? "border-l-4 border-l-red-500" : ""
       }`}
     >
-      <CardBody className="p-4 flex-1 flex flex-col min-h-0">
-        <div className="flex gap-3 flex-1 min-h-0">
+      <CardBody className="p-4 flex-1 flex flex-col min-h-0 h-full">
+        <div className="flex gap-3 flex-1 min-h-0 h-full">
           {/* Left: Content */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
             <div className="flex items-center text-xs text-gray-600 mb-2 flex-wrap gap-1.5 shrink-0">
