@@ -45,8 +45,8 @@ const articleSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["draft", "published", "archived"],
-      default: "draft",
+      enum: [0, 1, 2],
+      default: 0,
     },
     isBreaking: {
       type: Boolean,

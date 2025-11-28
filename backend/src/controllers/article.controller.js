@@ -71,7 +71,7 @@ export const createArticle = async (req, res) => {
       youtubeVideo: youtubeVideo || "",
       tags: tagsArray || [],
       author,
-      status: status || "draft",
+      status: status || 0,
       isBreaking: isBreaking === "true" || isBreaking === true,
       isTrending: isTrending === "true" || isTrending === true,
       isFeatured: isFeatured === "true" || isFeatured === true,
@@ -102,7 +102,7 @@ export const createArticle = async (req, res) => {
 export const getArticlesByCategoryPath = async (req, res) => {
   try {
     const { categoryPath } = req.params;
-    const { page = 1, limit = 10, status = "published" } = req.query;
+    const { page = 1, limit = 10, status = 1 } = req.query;
 
     const slugs = categoryPath.split("/").filter(Boolean);
 
@@ -139,7 +139,7 @@ export const getArticlesByCategoryPath = async (req, res) => {
 
     const articles = await Article.find({
       category: { $in: categoryIds },
-      status: status,
+      status: status ? parseInt(status) : 1,
     })
       .populate("category", "name slug parent level")
       .sort({ publishDate: -1, createdAt: -1 })
@@ -148,7 +148,7 @@ export const getArticlesByCategoryPath = async (req, res) => {
 
     const total = await Article.countDocuments({
       category: { $in: categoryIds },
-      status: status,
+      status: status ? parseInt(status) : 1,
     });
 
     const categoryPathInfo = await getCategoryPathInfo(currentCategory._id);
@@ -184,7 +184,7 @@ const getHomePageData = async (req, res) => {
 
     // Fetch breaking news (left panel)
     const breakingArticles = await Article.find({
-      status: "published",
+      status: 1,
       isBreaking: true,
       $or: [
         { breakingExpiresAt: { $gt: now } },
@@ -200,7 +200,7 @@ const getHomePageData = async (req, res) => {
 
     // Fetch featured article (center - must have image)
     const featuredArticle = await Article.findOne({
-      status: "published",
+      status: 1,
       isFeatured: true,
       featuredImage: { $ne: "" },
     })
@@ -209,7 +209,7 @@ const getHomePageData = async (req, res) => {
 
     // Fetch top story (center)
     const topStory = await Article.findOne({
-      status: "published",
+      status: 1,
       isTopStory: true,
       _id: { $ne: featuredArticle?._id },
     })
@@ -218,7 +218,7 @@ const getHomePageData = async (req, res) => {
 
     // Fetch trending articles (right panel)
     const trendingArticles = await Article.find({
-      status: "published",
+      status: 1,
       isTrending: true,
     })
       .populate("category", "name slug parent level")
@@ -230,7 +230,7 @@ const getHomePageData = async (req, res) => {
 
     // Fetch regular articles (center - paginated)
     const regularArticles = await Article.find({
-      status: "published",
+      status: 1,
       _id: { $nin: excludedIds },
     })
       .populate("category", "name slug parent level")
@@ -349,7 +349,7 @@ export const getAllArticles = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     let query = {};
 
-    if (status) query.status = status;
+    if (status) query.status = parseInt(status);
     if (category) query.category = category;
     if (isBreaking !== undefined) query.isBreaking = isBreaking === "true";
     if (isTrending !== undefined) query.isTrending = isTrending === "true";
@@ -513,7 +513,7 @@ export const updateArticle = async (req, res) => {
     if (category !== undefined) article.category = category;
     if (youtubeVideo !== undefined) article.youtubeVideo = youtubeVideo;
     if (author !== undefined) article.author = author;
-    if (status !== undefined) article.status = status;
+    if (status !== undefined) article.status = parseInt(status);
     if (metaTitle !== undefined) article.metaTitle = metaTitle;
     if (metaDescription !== undefined) article.metaDescription = metaDescription;
     if (publishDate !== undefined) {

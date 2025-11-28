@@ -86,7 +86,7 @@ export default function ArticleEditor() {
     tags: [],
     featuredImage: "",
     youtubeVideo: "",
-    status: "draft",
+    status: 0,
     isBreaking: false,
     isTrending: false,
     isFeatured: false,
@@ -130,7 +130,7 @@ export default function ArticleEditor() {
           tags: articleData.tags || [],
           featuredImage: articleData.featuredImage || "",
           youtubeVideo: articleData.youtubeVideo || "",
-          status: articleData.status || "draft",
+          status: articleData.status || 0,
           isBreaking: Boolean(articleData.isBreaking), // Ensure boolean
           isTrending: Boolean(articleData.isTrending), // Ensure boolean
           isFeatured: Boolean(articleData.isFeatured), // Ensure boolean
@@ -469,7 +469,7 @@ export default function ArticleEditor() {
     return isValid;
   };
 
-  const handleSave = async (status = "draft") => {
+  const handleSave = async (status = 0) => {
     // Validate form
     if (!validateForm()) {
       return;
@@ -549,10 +549,10 @@ export default function ArticleEditor() {
 
       if (response.success) {
         toast.success(
-          `Article ${status === "draft" ? "saved as draft" : "published"
+          `Article ${status == 0 ? "saved as draft" : "published"
           } successfully!`
         );
-        if (!articleId && status === "published") {
+        if (!articleId && status === 1) {
           setArticle({
             title: "",
             content: "",
@@ -561,7 +561,7 @@ export default function ArticleEditor() {
             tags: [],
             featuredImage: "",
             youtubeVideo: "",
-            status: "draft",
+            status: 0,
             isBreaking: false,
             isTrending: false,
             isFeatured: false,
@@ -662,7 +662,7 @@ export default function ArticleEditor() {
           <Button
             variant="bordered"
             startContent={<Save size={18} />}
-            onPress={() => handleSave("draft")}
+            onPress={() => handleSave(0)}
             className="border-gray-300"
             isLoading={saving}
             isDisabled={saving}
@@ -672,7 +672,7 @@ export default function ArticleEditor() {
           <Button
             color="primary"
             startContent={<Send size={18} />}
-            onPress={() => handleSave("published")}
+            onPress={() => handleSave(1)}
             className="bg-black text-white hover:bg-gray-800"
             isLoading={saving}
             isDisabled={saving}
