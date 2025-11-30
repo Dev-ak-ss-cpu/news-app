@@ -25,6 +25,11 @@ const articleSchema = new mongoose.Schema(
       ref: "Category",
       required: [true, "Category is required"],
     },
+    categoryPath: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'Category',
+      default: []
+    },
     featuredImage: {
       type: String,
       default: "",
@@ -61,14 +66,6 @@ const articleSchema = new mongoose.Schema(
       default: false,
     },
     isTopStory: {
-      type: Boolean,
-      default: false,
-    },
-    isSubStory: {
-      type: Boolean,
-      default: false,
-    },
-    isEditorsPick: {
       type: Boolean,
       default: false,
     },

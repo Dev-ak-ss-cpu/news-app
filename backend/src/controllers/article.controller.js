@@ -36,8 +36,6 @@ export const createArticle = async (req, res) => {
       isTrending,
       isFeatured,
       isTopStory,
-      isSubStory,
-      isEditorsPick,
       metaTitle,
       metaDescription,
       publishDate,
@@ -56,6 +54,7 @@ export const createArticle = async (req, res) => {
         message: "Category does not exist",
       });
     }
+    const categoryPathIds = await getCategoryPathIds(category);
 
     let tagsArray = [];
     if (tags) {
@@ -67,6 +66,7 @@ export const createArticle = async (req, res) => {
       excerpt,
       content,
       category,
+      categoryPath: categoryPathIds,
       featuredImage: featuredImageUrl,
       youtubeVideo: youtubeVideo || "",
       tags: tagsArray || [],
@@ -76,8 +76,6 @@ export const createArticle = async (req, res) => {
       isTrending: isTrending === "true" || isTrending === true,
       isFeatured: isFeatured === "true" || isFeatured === true,
       isTopStory: isTopStory === "true" || isTopStory === true,
-      isSubStory: isSubStory === "true" || isSubStory === true,
-      isEditorsPick: isEditorsPick === "true" || isEditorsPick === true,
       metaTitle,
       metaDescription,
       publishDate: publishDate ? new Date(publishDate) : new Date(),
@@ -341,10 +339,17 @@ export const getAllArticles = async (req, res) => {
       limit = 10,
       status,
       category,
+      level0Category,
+      level1Category,
+      level2Category,
       isBreaking,
       isTrending,
+      isFeatured,
+      isTopStory,
       search,
       date,
+      startDate,
+      endDate,
       home,
     } = req.query;
 
@@ -356,10 +361,45 @@ export const getAllArticles = async (req, res) => {
     let query = {};
 
     if (status) query.status = parseInt(status);
-    if (category) query.category = category;
+
+    if (level2Category) {
+      query.category = level2Category;
+    } else if (level1Category) {
+      query.categoryPath = level1Category;
+    } else if (level0Category) {
+      query.categoryPath = level0Category;
+    }
+
     if (isBreaking !== undefined) query.isBreaking = isBreaking === "true";
     if (isTrending !== undefined) query.isTrending = isTrending === "true";
-    if (date !== undefined) query.publishDate = new Date(date);
+    if (isFeatured !== undefined) query.isFeatured = isFeatured === "true";
+    if (isTopStory !== undefined) query.isTopStory = isTopStory === "true";
+
+    if (startDate || endDate) {
+      query.publishDate = {};
+
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        query.publishDate.$gte = start;
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.publishDate.$lte = end;
+      }
+    } else if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+
+      query.publishDate = { $gte: start, $lte: end };
+    }
+
+    // Search filter
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -376,16 +416,7 @@ export const getAllArticles = async (req, res) => {
 
     const total = await Article.countDocuments(query);
 
-    const newArticles = await Promise.all(
-      articles.map(async (article) => {
-        const categoryPathIds = await getCategoryPathIds(article.category._id);
-
-        const articleData = article.toObject();
-        articleData.categoryPath = categoryPathIds;
-
-        return articleData;
-      })
-    );
+    const newArticles = articles.map(article => article.toObject());
 
     res.status(200).json({
       success: true,
@@ -406,6 +437,7 @@ export const getAllArticles = async (req, res) => {
     });
   }
 };
+
 
 export const getArticleBySlug = async (req, res) => {
   try {
@@ -438,6 +470,51 @@ export const getArticleBySlug = async (req, res) => {
   }
 };
 
+export const getArticleStats = async (req, res) => {
+  try {
+    // Get all counts in parallel for better performance
+    const [
+      totalArticles,
+      publishedArticles,
+      draftArticles,
+      // archivedArticles,
+      breakingNews,
+      trendingArticles,
+      featuredArticles,
+      topStories,
+    ] = await Promise.all([
+      Article.countDocuments({}),
+      Article.countDocuments({ status: 1 }),
+      Article.countDocuments({ status: 0 }),
+      // Article.countDocuments({ status: 2 }),
+      Article.countDocuments({ isBreaking: true }),
+      Article.countDocuments({ isTrending: true }),
+      Article.countDocuments({ isFeatured: true }),
+      Article.countDocuments({ isTopStory: true }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total: totalArticles,
+        published: publishedArticles,
+        draft: draftArticles,
+        // archived: archivedArticles,
+        breaking: breakingNews,
+        trending: trendingArticles,
+        featured: featuredArticles,
+        topStories: topStories,
+      },
+    });
+  } catch (error) {
+    console.log("err",error)
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error fetching article statistics",
+    });
+  }
+};
+
 export const updateArticle = async (req, res) => {
   try {
     const { id } = req.params;
@@ -454,8 +531,6 @@ export const updateArticle = async (req, res) => {
       isTrending,
       isFeatured,
       isTopStory,
-      isSubStory,
-      isEditorsPick,
       metaTitle,
       metaDescription,
       publishDate,
@@ -480,6 +555,8 @@ export const updateArticle = async (req, res) => {
           message: "Category does not exist",
         });
       }
+      article.category = category;
+      article.categoryPath = await getCategoryPathIds(category);
     }
 
     // Handle featured image updates
@@ -528,7 +605,6 @@ export const updateArticle = async (req, res) => {
     if (title !== undefined) article.title = title;
     if (excerpt !== undefined) article.excerpt = excerpt;
     if (content !== undefined) article.content = content;
-    if (category !== undefined) article.category = category;
     if (youtubeVideo !== undefined) article.youtubeVideo = youtubeVideo;
     if (author !== undefined) article.author = author;
     if (status !== undefined) article.status = parseInt(status);
@@ -551,13 +627,6 @@ export const updateArticle = async (req, res) => {
     }
     if (isTopStory !== undefined) {
       article.isTopStory = isTopStory === "true" || isTopStory === true;
-    }
-    if (isSubStory !== undefined) {
-      article.isSubStory = isSubStory === "true" || isSubStory === true;
-    }
-    if (isEditorsPick !== undefined) {
-      article.isEditorsPick =
-        isEditorsPick === "true" || isEditorsPick === true;
     }
 
     // Handle tags
@@ -618,6 +687,10 @@ export const deleteArticle = async (req, res) => {
   }
 };
 
+
+
+
+// Helper Function --
 const getAllCategoryIds = async (categoryId) => {
   const categoryIds = [categoryId];
   const children = await Category.find({ parent: categoryId });

@@ -1,4 +1,5 @@
 import "@/app/globals.css";
+import Providers from "@/app/Providers";
 
 export const metadata = {
     title: "Admin Dashboard",
@@ -7,6 +8,8 @@ export const metadata = {
 
 export default function AdminLayout({ children }) {
     return (
-        <main >{children}</main>
+        <Providers>
+            <main>{children}</main>
+        </Providers>
     );
 }

@@ -21,7 +21,7 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
-  toast,
+  addToast, // Change from 'toast' to 'addToast'
   Spinner,
 } from "@heroui/react";
 import {
@@ -91,11 +91,10 @@ export default function ArticleEditor() {
     isTrending: false,
     isFeatured: false,
     isTopStory: false,
-    isSubStory: false,
-    isEditorsPick: false,
     metaTitle: "",
     metaDescription: "",
     publishDate: new Date().toISOString().split("T")[0],
+    publishTime: new Date().toTimeString().slice(0, 5), // Add time state (HH:MM format)
     author: "Current User",
   });
 
@@ -122,6 +121,10 @@ export default function ArticleEditor() {
       const response = await genericGetApi(`/api/articles/${articleId}`); // Use /id/ endpoint
       if (response.success && response.data) {
         const articleData = response.data;
+        const publishDateTime = articleData.publishDate 
+          ? new Date(articleData.publishDate) 
+          : new Date();
+        
         setArticle({
           title: articleData.title || "",
           content: articleData.content || "",
@@ -135,13 +138,10 @@ export default function ArticleEditor() {
           isTrending: Boolean(articleData.isTrending), // Ensure boolean
           isFeatured: Boolean(articleData.isFeatured), // Ensure boolean
           isTopStory: Boolean(articleData.isTopStory), // Ensure boolean
-          isSubStory: Boolean(articleData.isSubStory), // Ensure boolean
-          isEditorsPick: Boolean(articleData.isEditorsPick), // Ensure boolean
           metaTitle: articleData.metaTitle || "",
           metaDescription: articleData.metaDescription || "",
-          publishDate: articleData.publishDate
-            ? new Date(articleData.publishDate).toISOString().split("T")[0]
-            : new Date().toISOString().split("T")[0],
+          publishDate: publishDateTime.toISOString().split("T")[0],
+          publishTime: publishDateTime.toTimeString().slice(0, 5), // Extract time (HH:MM)
           author: articleData.author || "Current User",
         });
 
@@ -237,14 +237,6 @@ export default function ArticleEditor() {
     "code-block",
     "link",
   ];
-
-  // Load categories and existing article data
-  useEffect(() => {
-    loadCategories();
-    if (articleId) {
-      // loadArticle(); // Uncomment if you have this function
-    }
-  }, [articleId]);
 
   const loadCategories = async () => {
     try {
@@ -450,21 +442,6 @@ export default function ArticleEditor() {
       isValid = false;
     }
 
-    // Validate Article Features - at least one must be selected
-    if (
-      !article.isBreaking &&
-      !article.isTrending &&
-      !article.isFeatured &&
-      !article.isTopStory &&
-      !article.isSubStory &&
-      !article.isEditorsPick
-    ) {
-      newErrors.articleFeatures = "At least one article feature must be selected";
-      isValid = false;
-    }
-
-    // Remove author validation - it's no longer required
-
     setErrors(newErrors);
     return isValid;
   };
@@ -477,6 +454,10 @@ export default function ArticleEditor() {
 
     setSaving(true);
     try {
+      // Combine date and time into ISO string
+      const publishDateTime = new Date(`${article.publishDate}T${article.publishTime}`);
+      const publishDateISO = publishDateTime.toISOString();
+
       const isFileUpload =
         article.featuredImage &&
         article.featuredImage.startsWith("data:image/");
@@ -495,13 +476,11 @@ export default function ArticleEditor() {
         formData.append("isTrending", article.isTrending);
         formData.append("isFeatured", article.isFeatured);
         formData.append("isTopStory", article.isTopStory);
-        formData.append("isSubStory", article.isSubStory);
-        formData.append("isEditorsPick", article.isEditorsPick);
         formData.append("youtubeVideo", article.youtubeVideo || "");
         formData.append("tags", JSON.stringify(article.tags));
         formData.append("metaTitle", article.metaTitle || "");
         formData.append("metaDescription", article.metaDescription || "");
-        formData.append("publishDate", article.publishDate);
+        formData.append("publishDate", publishDateISO); // Send combined date+time
 
         const fetchResponse = await fetch(article.featuredImage);
         const blob = await fetchResponse.blob();
@@ -530,11 +509,9 @@ export default function ArticleEditor() {
           isTrending: article.isTrending,
           isFeatured: article.isFeatured,
           isTopStory: article.isTopStory,
-          isSubStory: article.isSubStory,
-          isEditorsPick: article.isEditorsPick,
           metaTitle: article.metaTitle,
           metaDescription: article.metaDescription,
-          publishDate: article.publishDate,
+          publishDate: publishDateISO, // Send combined date+time
         };
 
         if (articleId) {
@@ -548,11 +525,13 @@ export default function ArticleEditor() {
       }
 
       if (response.success) {
-        toast.success(
-          `Article ${status == 0 ? "saved as draft" : "published"
-          } successfully!`
-        );
+        addToast({
+          title: "Success",
+          description: `Article ${status == 0 ? "saved as draft" : "published"} successfully!`,
+          color: "success"
+        });
         if (!articleId && status === 1) {
+          const now = new Date();
           setArticle({
             title: "",
             content: "",
@@ -566,11 +545,10 @@ export default function ArticleEditor() {
             isTrending: false,
             isFeatured: false,
             isTopStory: false,
-            isSubStory: false,
-            isEditorsPick: false,
             metaTitle: "",
             metaDescription: "",
-            publishDate: new Date().toISOString().split("T")[0],
+            publishDate: now.toISOString().split("T")[0],
+            publishTime: now.toTimeString().slice(0, 5), // Reset time
             author: "Current User",
           });
           setCategoryPath([]);
@@ -588,11 +566,19 @@ export default function ArticleEditor() {
           });
         }
       } else {
-        toast.error(response.message || "Failed to save article");
+        addToast({
+          title: "Error",
+          description: response.message || "Failed to save article",
+          color: "danger"
+        });
       }
     } catch (error) {
       console.error("Error saving article:", error);
-      toast.error("An error occurred while saving the article");
+      addToast({
+        title: "Error",
+        description: "An error occurred while saving the article",
+        color: "danger"
+      });
     } finally {
       setSaving(false);
     }
@@ -908,18 +894,30 @@ export default function ArticleEditor() {
               <h3 className="text-lg font-semibold text-black">Categories</h3>
             </CardHeader>
             <CardBody className="space-y-4">
-              <div data-field="publishDate">
+              <div data-field="publishDate" className="flex gap-3">
                 <Input
                   type="date"
-                  label="Publish Date & Time"
+                  label="Publish Date"
                   value={article.publishDate}
                   onChange={(e) =>
-                    handleInputChange("publishDate", e.target.value.split("T")[0])
+                    handleInputChange("publishDate", e.target.value)
                   }
                   variant="bordered"
                   isRequired
                   isInvalid={!!errors.publishDate}
                   errorMessage={errors.publishDate}
+                  className="flex-1"
+                />
+                <Input
+                  type="time"
+                  label="Publish Time"
+                  value={article.publishTime}
+                  onChange={(e) =>
+                    handleInputChange("publishTime", e.target.value)
+                  }
+                  variant="bordered"
+                  isRequired
+                  className="flex-1"
                 />
               </div>
 
@@ -1061,41 +1059,6 @@ export default function ArticleEditor() {
                 />
               </div>
 
-              {/* Sub Story */}
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <ListTree size={18} className="text-purple-500" />
-                  <span className="text-gray-700">Sub Story</span>
-                </div>
-                <Switch
-                  color="secondary"
-                  isSelected={article.isSubStory}
-                  onValueChange={(value) => {
-                    handleInputChange("isSubStory", value);
-                    if (errors.articleFeatures) {
-                      setErrors((prev) => ({ ...prev, articleFeatures: "" }));
-                    }
-                  }}
-                />
-              </div>
-
-              {/* Editor's Pick */}
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <PenSquare size={18} className="text-pink-500" />
-                  <span className="text-gray-700">Editor&apos;s Pick</span>
-                </div>
-                <Switch
-                  color="secondary"
-                  isSelected={article.isEditorsPick}
-                  onValueChange={(value) => {
-                    handleInputChange("isEditorsPick", value);
-                    if (errors.articleFeatures) {
-                      setErrors((prev) => ({ ...prev, articleFeatures: "" }));
-                    }
-                  }}
-                />
-              </div>
             </CardBody>
           </Card>
 
