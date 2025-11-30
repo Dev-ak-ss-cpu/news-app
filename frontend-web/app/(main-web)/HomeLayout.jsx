@@ -14,7 +14,7 @@ export default function Layout({
 }) {
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-2 md:px-3 lg:px-3 xl:px-4">
         <div className="flex gap-6 pt-6">
           {/* Left Fixed Panel */}
           <div className="hidden lg:block w-80 shrink-0">
@@ -24,7 +24,7 @@ export default function Layout({
           {/* Middle Scrollable Section */}
           <div className="flex-1 min-w-0">
             <MiddleNewsSection
-            topStory={topStory}
+              topStory={topStory}
               featuredArticle={featuredArticle}
               regularArticles={regularArticles}
               loadMore={loadMore}
@@ -34,7 +34,7 @@ export default function Layout({
           </div>
 
           {/* Right Fixed Panel */}
-          <div className="hidden xl:block w-80 shrink-0">
+          <div className="hidden lg:block w-80 shrink-0">
             <RightNewsPanel breakingNews={breakingNews} />
           </div>
         </div>

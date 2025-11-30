@@ -737,7 +737,7 @@ export default function NewsDashboard() {
                                                                     size="sm"
                                                                     variant="light"
                                                                     className="text-gray-600 min-w-10 h-10"
-                                                                    onPress={() => router.push(`/article/${article.slug || article._id}`)}
+                                                                    onPress={() => router.push(`/${article.slug || article._id}`)}
                                                                     isIconOnly
                                                                 >
                                                                     <ExternalLink size={16} />

@@ -24,9 +24,21 @@ router.get(/^\/category\/(.+)$/, (req, res, next) => {
   getArticlesByCategoryPath(req, res, next);
 });
 
-router.get("/:id", getArticleById);
 router.get("/", getAllArticles);
-router.get("/:slug", getArticleBySlug);
+
+router.get("/:identifier", async (req, res, next) => {
+  const { identifier } = req.params;
+
+  if (identifier && identifier.match(/^[0-9a-fA-F]{24}$/)) {
+    // It's an ID
+    req.params.id = identifier;
+    return getArticleById(req, res, next);
+  } else {
+    // It's a slug
+    req.params.slug = identifier;
+    return getArticleBySlug(req, res, next);
+  }
+});
 router.put("/:id", uploadSingle, updateArticle);
 router.patch("/:id", uploadSingle, updateArticle);
 router.delete("/:id", deleteArticle);

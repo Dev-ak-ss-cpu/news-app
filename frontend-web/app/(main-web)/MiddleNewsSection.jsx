@@ -282,7 +282,7 @@ export default function MiddleNewsSection({
   const renderImageArticle = (article) => {
     if (!article) return null;
     return (
-      <Link key={article._id} href={`/article/${article.slug}`}>
+      <Link key={article._id} href={`/${article.slug}`}>
         <Card className="bg-white border-0 shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow rounded-xl h-full flex flex-col">
           <div className="aspect-[16/9] bg-gray-200 relative rounded-xl overflow-hidden flex-shrink-0">
             {article.featuredImage && (
@@ -364,7 +364,7 @@ export default function MiddleNewsSection({
     const thumbnail = getYouTubeThumbnail(article.youtubeVideo);
 
     return (
-      <Link key={article._id} href={`/article/${article.slug}`}>
+      <Link key={article._id} href={`/${article.slug}`}>
         <Card className="bg-white border border-gray-200 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
           <CardBody className="p-0">
             <div className="flex flex-col md:flex-row">
@@ -445,7 +445,7 @@ export default function MiddleNewsSection({
               {block.articles.map((article, index) => (
                 <Link
                   key={article._id || index}
-                  href={`/article/${article.slug}`}
+                  href={`/${article.slug}`}
                   className="h-full block"
                 >
                   <NewsCard
@@ -488,7 +488,7 @@ export default function MiddleNewsSection({
                 return (
                   <Link
                     key={article._id || index}
-                    href={`/article/${article.slug}`}
+                    href={`/${article.slug}`}
                     className="h-full block"
                   >
                     <NewsCard
@@ -526,7 +526,7 @@ export default function MiddleNewsSection({
           categories.map((category) => (
             <Link
               key={category._id}
-              href={`/category/${category.slug || category._id}`}
+              href={`/${category.slug || category._id}`}
             >
               <CategoryCard
                 name={category.name}

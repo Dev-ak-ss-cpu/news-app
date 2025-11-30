@@ -57,7 +57,7 @@ export default function RightNewsPanel({ breakingNews = [] }) {
           <div className="space-y-4">
             {breakingNews.length > 0 ? (
               breakingNews.map((news, index) => (
-                <Link key={news._id || index} href={`/article/${news.slug}`}>
+                <Link key={news._id || index} href={`/${news.slug}`}>
                   <div className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0 hover:bg-gray-50 p-2 rounded transition-colors cursor-pointer">
                     <div className="flex items-start gap-3">
                       <span className="shrink-0 w-6 h-6 bg-red-100 text-red-600 rounded-full text-xs flex items-center justify-center font-bold">
