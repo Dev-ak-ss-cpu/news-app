@@ -131,7 +131,9 @@ export const getArticlesByCategoryPath = async (req, res) => {
       parentId = category._id;
     }
 
-    const categoryIds = await getAllCategoryIds(currentCategory._id);
+    // Updated to use new structure
+    const categoryResult = await getAllCategoryIds(currentCategory._id);
+    const categoryIds = categoryResult.ids;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -292,46 +294,6 @@ const getHomePageData = async (req, res) => {
   }
 };
 
-export const getArticleById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid article ID format",
-      });
-    }
-
-    const article = await Article.findById(id).populate(
-      "category",
-      "name slug parent level"
-    );
-
-    if (!article) {
-      return res.status(404).json({
-        success: false,
-        message: "Article not found",
-      });
-    }
-
-    const categoryPathIds = await getCategoryPathIds(article.category._id);
-
-    const articleData = article.toObject();
-    articleData.categoryPath = categoryPathIds;
-
-    res.status(200).json({
-      success: true,
-      data: articleData,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || "Error fetching article",
-    });
-  }
-};
-
 export const getAllArticles = async (req, res) => {
   try {
     const {
@@ -438,10 +400,51 @@ export const getAllArticles = async (req, res) => {
   }
 };
 
+export const getArticleById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid article ID format",
+      });
+    }
+
+    const article = await Article.findById(id).populate(
+      "category",
+      "name slug parent level"
+    );
+
+    if (!article) {
+      return res.status(404).json({
+        success: false,
+        message: "Article not found",
+      });
+    }
+
+    const categoryPathIds = await getCategoryPathIds(article.category._id);
+
+    const articleData = article.toObject();
+    articleData.categoryPath = categoryPathIds;
+
+    res.status(200).json({
+      success: true,
+      data: articleData,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Error fetching article",
+    });
+  }
+};
 
 export const getArticleBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
+    // Optional: category path from query string for validation
+    const { categoryPath } = req.query;
 
     const article = await Article.findOne({ slug }).populate(
       "category",
@@ -453,6 +456,22 @@ export const getArticleBySlug = async (req, res) => {
         success: false,
         message: "Article not found",
       });
+    }
+
+    // Validate category path if provided
+    if (categoryPath) {
+      const categoryPathSlugs = categoryPath.split("/").filter(Boolean);
+      const validation = await validateArticleCategoryPath(
+        article.category._id,
+        categoryPathSlugs
+      );
+
+      if (!validation.valid) {
+        return res.status(403).json({
+          success: false,
+          message: validation.message || "Article does not belong to the specified category path",
+        });
+      }
     }
 
     article.views += 1;
@@ -507,7 +526,7 @@ export const getArticleStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log("err",error)
+    console.log("err", error)
     res.status(500).json({
       success: false,
       message: error.message || "Error fetching article statistics",
@@ -690,19 +709,104 @@ export const deleteArticle = async (req, res) => {
 
 
 
-// Helper Function --
+// Helper Function - Updated to include category names
 const getAllCategoryIds = async (categoryId) => {
+  const category = await Category.findById(categoryId);
+  if (!category) {
+    return { ids: [], categories: [] };
+  }
+
   const categoryIds = [categoryId];
+  const categories = [{
+    _id: category._id,
+    name: category.name,
+    slug: category.slug,
+    level: category.level
+  }];
+  
   const children = await Category.find({ parent: categoryId });
 
   for (const child of children) {
-    const childIds = await getAllCategoryIds(child._id);
-    categoryIds.push(...childIds);
+    const childResult = await getAllCategoryIds(child._id);
+    categoryIds.push(...childResult.ids);
+    categories.push(...childResult.categories);
   }
 
-  return categoryIds;
+  return { ids: categoryIds, categories };
 };
 
+// Helper to get full category path (from root to current) as slugs
+const getCategoryPathSlugs = async (categoryId) => {
+  const path = [];
+  let current = await Category.findById(categoryId);
+
+  if (!current) return path;
+
+  const tempPath = [];
+  while (current) {
+    tempPath.push({
+      _id: current._id.toString(),
+      slug: current.slug,
+      name: current.name
+    });
+    if (current.parent) {
+      current = await Category.findById(current.parent);
+    } else {
+      current = null;
+    }
+  }
+
+  return tempPath.reverse();
+};
+
+// Validate if article belongs to the category path in URL
+const validateArticleCategoryPath = async (articleCategoryId, urlCategoryPathSlugs) => {
+  if (!urlCategoryPathSlugs || urlCategoryPathSlugs.length === 0) {
+    return { valid: true, message: null };
+  }
+
+  // Get article's full category path
+  const articleCategoryPath = await getCategoryPathSlugs(articleCategoryId);
+  
+  if (articleCategoryPath.length === 0) {
+    return {
+      valid: false,
+      message: "Article category not found"
+    };
+  }
+
+  // Extract slugs from article's category path
+  const articlePathSlugs = articleCategoryPath.map(cat => cat.slug);
+  
+  // Check if URL path matches any part of article's category path
+  // Article in /country/uttar-pradesh/agra should be accessible via:
+  // - /country/article-slug (matches first segment)
+  // - /country/uttar-pradesh/article-slug (matches first two segments)
+  // - /country/uttar-pradesh/agra/article-slug (matches all segments)
+  // But NOT via /business/article-slug (different parent)
+  
+  // Check if URL path starts from the beginning of article's path
+  if (articlePathSlugs.length < urlCategoryPathSlugs.length) {
+    return {
+      valid: false,
+      message: "URL category path is longer than article's category path"
+    };
+  }
+
+  // Compare segments from the beginning
+  for (let i = 0; i < urlCategoryPathSlugs.length; i++) {
+    if (articlePathSlugs[i] !== urlCategoryPathSlugs[i]) {
+      return {
+        valid: false,
+        message: `Category path mismatch. Article belongs to ${articlePathSlugs.join('/')}, but URL has ${urlCategoryPathSlugs.join('/')}`
+      };
+    }
+  }
+
+  return { valid: true, message: null };
+};
+
+// Helper Function --
 const getCategoryPathInfo = async (categoryId) => {
   const category = await Category.findById(categoryId).populate(
     "parent",

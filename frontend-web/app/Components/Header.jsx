@@ -330,7 +330,7 @@ export default function Header() {
   // --------------------------------------------------
 
   return (
-    <header className="bg-white shadow-lg sticky top-0 z-50 border-b-2 border-red-600">
+    <header className="bg-white sticky top-0 z-50 " >
       {/* TOP BAR */}
       <div className="bg-gradient-to-r from-red-600 via-red-650 to-red-700 text-white">
         <div className="container mx-auto px-4">

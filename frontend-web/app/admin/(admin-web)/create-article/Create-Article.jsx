@@ -121,10 +121,10 @@ export default function ArticleEditor() {
       const response = await genericGetApi(`/api/articles/${articleId}`); // Use /id/ endpoint
       if (response.success && response.data) {
         const articleData = response.data;
-        const publishDateTime = articleData.publishDate 
-          ? new Date(articleData.publishDate) 
+        const publishDateTime = articleData.publishDate
+          ? new Date(articleData.publishDate)
           : new Date();
-        
+
         setArticle({
           title: articleData.title || "",
           content: articleData.content || "",
@@ -200,7 +200,7 @@ export default function ArticleEditor() {
         [{ font: [] }],
         [{ size: ["small", false, "large", "huge"] }],
         ["bold", "italic", "underline", "strike"],
-        [{ color: [] }, { background: [] }],
+        [{ color: [] }, { background: [] }], // 👈 Text + Background Colors Enabled
         [{ script: "sub" }, { script: "super" }],
         [{ list: "ordered" }, { list: "bullet" }],
         [{ indent: "-1" }, { indent: "+1" }],
@@ -225,8 +225,8 @@ export default function ArticleEditor() {
     "italic",
     "underline",
     "strike",
-    "color",
-    "background",
+    "color",      // 👈 Added
+    "background", // 👈 Added
     "script",
     "list",
     "bullet",
@@ -237,6 +237,7 @@ export default function ArticleEditor() {
     "code-block",
     "link",
   ];
+
 
   const loadCategories = async () => {
     try {

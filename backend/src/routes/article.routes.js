@@ -32,8 +32,8 @@ router.get("/stats", getArticleStats);  // ✅ Move this before /:id
 router.get("/", getAllArticles);
 
 // Dynamic routes LAST
-router.get("/:slug", getArticleBySlug);  // This will catch slugs
 router.get("/:id", getArticleById);      // This will catch IDs
+router.get("/slug/:slug", getArticleBySlug);  // This will catch slugs
 
 // Update and delete
 router.put("/:id", uploadSingle, updateArticle);

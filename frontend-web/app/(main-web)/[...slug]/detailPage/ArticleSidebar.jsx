@@ -1,3 +1,4 @@
+"use client"
 import { Card, CardBody } from '@heroui/react';
 import { TrendingUp, Share2 } from 'lucide-react';
 
