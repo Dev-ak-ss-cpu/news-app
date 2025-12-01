@@ -31,8 +31,12 @@ import {
     Users
 } from "lucide-react";
 import { fetchCategoryData } from "./utils/routeUtils";
+import TrendingArticles from '@/app/Components/TrendingArticles';
+import RelatedArticles from '@/app/Components/RelatedArticles';
+import RelatedCategories from '@/app/Components/RelatedCategories';
+import { buildArticleUrl } from "@/app/utils/articleUrl";
 
-export default function CategoryListing({ categoryData }) {
+export default function CategoryListing({ categoryData, sidebarData = {} }) {
     const [articles, setArticles] = useState(categoryData?.articles || []);
     const [pagination, setPagination] = useState(categoryData?.pagination || null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -320,8 +324,10 @@ export default function CategoryListing({ categoryData }) {
                                                             </div>
                                                         </div>
 
-                                                        <h3 className="text-xl font-bold text-gray-900 mb-2 hover:text-blue-600 cursor-pointer">
-                                                            {article.title || `News Article ${index + 1}`}
+                                                        <h3 className="text-xl font-bold text-gray-900 mb-2 hover:text-red-400 cursor-pointer">
+                                                            <Link href={buildArticleUrl(article)}>
+                                                                {article.title || `News Article ${index + 1}`}
+                                                            </Link>
                                                         </h3>
 
                                                         <p className="text-gray-600 mb-4 line-clamp-2">
@@ -405,84 +411,23 @@ export default function CategoryListing({ categoryData }) {
 
                     {/* Sidebar */}
                     <aside className="w-full lg:w-1/3 space-y-6">
+                        {/* Related Articles from Same Category */}
+                        <RelatedArticles 
+                            articles={sidebarData.relatedArticles || []}
+                            title="Other News from This Category"
+                        />
+
                         {/* Related Categories */}
-                        <Card>
-                            <CardBody className="p-6">
-                                <h3 className="font-bold text-lg text-gray-900 mb-4 flex items-center gap-2">
-                                    <Users size={18} />
-                                    Related Categories
-                                </h3>
-                                <div className="space-y-3">
-                                    {relatedCategories.map((cat) => (
-                                        <Link
-                                            key={cat.slug}
-                                            href={`/${cat.slug}`}
-                                            className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
-                                        >
-                                            <span className="text-gray-700 group-hover:text-blue-600 font-medium">
-                                                {cat.name}
-                                            </span>
-                                            <Chip size="sm" variant="flat" color="default">
-                                                {cat.count}
-                                            </Chip>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </CardBody>
-                        </Card>
+                        <RelatedCategories 
+                            categories={sidebarData.relatedCategories || []}
+                            title="Related Categories"
+                        />
 
-                        {/* Trending Topics */}
-                        <Card>
-                            <CardBody className="p-6">
-                                <h3 className="font-bold text-lg text-gray-900 mb-4 flex items-center gap-2">
-                                    <TrendingUp size={18} />
-                                    Trending Topics
-                                </h3>
-                                <div className="space-y-3">
-                                    {trendingTopics.map((topic, index) => (
-                                        <div
-                                            key={`topic-${index}`}
-                                            className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className="flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded text-sm font-bold">
-                                                    {index + 1}
-                                                </span>
-                                                <span className="text-gray-700 font-medium">{topic.name}</span>
-                                            </div>
-                                            <span className="text-sm text-gray-500">{topic.articles} articles</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardBody>
-                        </Card>
-
-                        {/* Regional News */}
-                        <Card>
-                            <CardBody className="p-6">
-                                <h3 className="font-bold text-lg text-gray-900 mb-4 flex items-center gap-2">
-                                    <MapPin size={18} />
-                                    Regional Coverage
-                                </h3>
-                                <div className="space-y-3">
-                                    {regionalNews.map((region, index) => (
-                                        <div
-                                            key={`region-${index}`}
-                                            className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <MapPin size={16} className="text-gray-400" />
-                                                <span className="text-gray-700 font-medium">{region.state}</span>
-                                                {region.trending && (
-                                                    <Chip size="sm" color="warning" variant="flat">Trending</Chip>
-                                                )}
-                                            </div>
-                                            <span className="text-sm text-gray-500">{region.articles}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardBody>
-                        </Card>
+                        {/* Trending Topics - Using reusable component */}
+                        <TrendingArticles 
+                            articles={sidebarData.trendingArticles || []}
+                            title="Trending Topics"
+                        />
 
                         {/* Newsletter Signup */}
                         <Card className="bg-gradient-to-br from-blue-600 to-purple-700 text-white">

@@ -1,26 +1,9 @@
 import { Card, CardBody } from "@heroui/react";
 import { Clock, Share2 } from "lucide-react";
 import Link from "next/link";
+import { buildArticleUrl } from "@/app/utils/articleUrl";
 
 export default function RightNewsPanel({ breakingNews = [] }) {
-  const latestUpdates = [
-    {
-      title: "नीतीश कुमार के मंत्रिमंडल में 5 नए मंत्रियों ने ली शपथ",
-      time: "15 मिनट पहले",
-    },
-    {
-      title: "बिहार विधानसभा में विपक्ष ने किया विरोध प्रदर्शन",
-      time: "30 मिनट पहले",
-    },
-    {
-      title: "प्रधानमंत्री मोदी ने नीतीश कुमार को दी बधाई",
-      time: "1 घंटा पहले",
-    },
-    {
-      title: "बिहार: नए मंत्रियों के आवंटन में देरी",
-      time: "2 घंटे पहले",
-    },
-  ];
 
   const popularCategories = [
     { name: "राजनीति", count: "1.2K", color: "bg-blue-500" },
@@ -57,7 +40,7 @@ export default function RightNewsPanel({ breakingNews = [] }) {
           <div className="space-y-4">
             {breakingNews.length > 0 ? (
               breakingNews.map((news, index) => (
-                <Link key={news._id || index} href={`/${news.slug}`}>
+                <Link key={news._id || index} href={buildArticleUrl(news)}>
                   <div className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0 hover:bg-gray-50 p-2 rounded transition-colors cursor-pointer">
                     <div className="flex items-start gap-3">
                       <span className="shrink-0 w-6 h-6 bg-red-100 text-red-600 rounded-full text-xs flex items-center justify-center font-bold">
@@ -109,7 +92,7 @@ export default function RightNewsPanel({ breakingNews = [] }) {
                   ></div>
                   <span className="font-medium text-gray-900">
                     {category.name}
-                  </span>
+                  </span>s
                 </div>
                 <span className="bg-white px-2 py-1 rounded text-xs font-medium text-gray-700">
                   {category.count}

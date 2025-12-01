@@ -2,36 +2,9 @@ import { Card, CardBody } from "@heroui/react";
 import { TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { LiveStreamPlayer } from "../Components/LiveStreamPlayer";
+import { buildArticleUrl } from "@/app/utils/articleUrl";
 
 export default function LeftNewsPanel({ trendingArticles = [] }) {
-  const trendingNews = [
-    {
-      title: "बिहार में बड़ा बदलाव: नीतीश कुमार ने ली मुख्यमंत्री पद की शपथ",
-      time: "2 घंटे पहले",
-      category: "राजनीति",
-    },
-    {
-      title: "IPL 2024: मुंबई इंडियंस ने चेन्नई को 5 विकेट से हराया",
-      time: "4 घंटे पहले",
-      category: "क्रिकेट",
-    },
-    {
-      title: "बॉलीवुड में सनसनी: नए सुपरस्टार की एंट्री",
-      time: "6 घंटे पहले",
-      category: "मनोरंजन",
-    },
-    {
-      title: "दिल्ली में तापमान गिरा, सर्द हवाओं का दौर",
-      time: "8 घंटे पहले",
-      category: "शहर",
-    },
-    {
-      title: "शेयर बाजार में तेजी, सेंसेक्स 500 अंक ऊपर",
-      time: "10 घंटे पहले",
-      category: "बिजनेस",
-    },
-  ];
-
   const getTimeAgo = (date) => {
     const now = new Date();
     const articleDate = new Date(date);
@@ -61,7 +34,7 @@ export default function LeftNewsPanel({ trendingArticles = [] }) {
           <div className="space-y-4">
             {trendingArticles.length > 0 ? (
               trendingArticles.map((news, index) => (
-                <Link key={news._id || index} href={`${news.slug}`}>
+                <Link key={news._id || index} href={buildArticleUrl(news)}>
                   <div className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0 hover:bg-gray-50 p-2 rounded transition-colors cursor-pointer">
                     <div className="flex items-start gap-3">
                       <span className="flex-shrink-0 w-6 h-6 bg-red-100 text-red-600 rounded-full text-xs flex items-center justify-center font-bold">

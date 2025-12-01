@@ -1,14 +1,15 @@
 "use client";
-import React, { useEffect, useState, useRef } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import React from 'react';
 import ArticleHeader from './ArticleHeader';
 import ArticleContent from './ArticleContent';
 import ArticleSidebar from './ArticleSidebar';
 import Footer from '@/app/Components/Footer';
 
-export default function ArticleDetails({ article, categoryPath = [] }) {
-
-    // Show loading while validating or redirecting
+export default function ArticleDetails({ 
+  article, 
+  categoryPath = [],
+  sidebarData = {} // Pre-fetched sidebar data
+}) {
     if (!article) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -26,14 +27,15 @@ export default function ArticleDetails({ article, categoryPath = [] }) {
 
             <main className="container mx-auto px-4 py-8">
                 <div className="flex gap-8">
-                    {/* Main Article Content */}
                     <div className="flex-1 min-w-0">
                         <ArticleContent article={article} />
                     </div>
 
-                    {/* Sidebar */}
                     <div className="hidden lg:block w-80 flex-shrink-0">
-                        <ArticleSidebar article={article} />
+                        <ArticleSidebar 
+                            article={article}
+                            sidebarData={sidebarData}
+                        />
                     </div>
                 </div>
             </main>
