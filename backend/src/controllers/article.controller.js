@@ -153,10 +153,19 @@ export const getArticlesByCategoryPath = async (req, res) => {
 
     const categoryPathInfo = await getCategoryPathInfo(currentCategory._id);
 
+    // Add category path slugs
+    const articlesWithPaths = await Promise.all(
+      articles.map(async (article) => {
+        const articleObj = article.toObject();
+        articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(article.category._id);
+        return articleObj;
+      })
+    );
+
     res.status(200).json({
       success: true,
       data: {
-        articles,
+        articles: articlesWithPaths, // Use articlesWithPaths
         category: categoryPathInfo,
         pagination: {
           currentPage: parseInt(page),
@@ -180,7 +189,7 @@ const getHomePageData = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const now = new Date();
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const breakingExpiryTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const breakingExpiryTime = new Date(now.getTime() - 800 * 60 * 60 * 1000);
 
     // Fetch breaking news (left panel)
     const breakingArticles = await Article.find({
@@ -248,33 +257,31 @@ const getHomePageData = async (req, res) => {
       _id: { $nin: excludedIds },
     });
 
-    // Format breaking news (timestamp logic commented for now)
-    const formattedBreakingNews = breakingArticles.map((article) => {
-      // let timeRemaining = null;
-      // if (article.breakingExpiresAt) {
-      //   const remaining = article.breakingExpiresAt - now;
-      //   timeRemaining = Math.max(0, Math.floor(remaining / (1000 * 60))); // minutes
-      // } else {
-      //   const expiryTime = new Date(article.publishDate.getTime() + 24 * 60 * 60 * 1000);
-      //   const remaining = expiryTime - now;
-      //   timeRemaining = Math.max(0, Math.floor(remaining / (1000 * 60))); // minutes
-      // }
+    // Add category path slugs to all articles
+    const addCategoryPaths = async (articles) => {
+      return Promise.all(
+        articles.map(async (article) => {
+          const articleObj = article.toObject();
+          articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(article.category._id);
+          return articleObj;
+        })
+      );
+    };
 
-      return {
-        ...article.toObject(),
-        // breakingTimeRemaining: timeRemaining,
-        // isBreakingActive: timeRemaining > 0
-      };
-    });
+    const formattedBreakingNews = await addCategoryPaths(breakingArticles);
+    const formattedFeatured = await addCategoryPaths(featuredArticle);
+    const formattedTopStory = await addCategoryPaths(topStory);
+    const formattedTrending = await addCategoryPaths(trendingArticles);
+    const formattedRegular = await addCategoryPaths(regularArticles);
 
     res.status(200).json({
       success: true,
       data: {
         breakingNews: formattedBreakingNews,
         center: {
-          featured: featuredArticle,
-          topStory: topStory,
-          regularArticles: regularArticles,
+          featured: formattedFeatured,
+          topStory: formattedTopStory,
+          regularArticles: formattedRegular,
           pagination: {
             currentPage: parseInt(page),
             totalPages: Math.ceil(totalRegularArticles / parseInt(limit)),
@@ -283,7 +290,7 @@ const getHomePageData = async (req, res) => {
             hasMore: skip + regularArticles.length < totalRegularArticles,
           },
         },
-        trending: trendingArticles,
+        trending: formattedTrending,
       },
     });
   } catch (error) {
@@ -376,14 +383,22 @@ export const getAllArticles = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
+    // Add category path slugs to each article
+    const articlesWithPaths = await Promise.all(
+      articles.map(async (article) => {
+        const articleObj = article.toObject();
+        articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(article.category._id);
+        return articleObj;
+      })
+    );
+
+
     const total = await Article.countDocuments(query);
-
-    const newArticles = articles.map(article => article.toObject());
-
+    
     res.status(200).json({
       success: true,
       data: {
-        newArticles,
+        newArticles: articlesWithPaths,
         pagination: {
           currentPage: parseInt(page),
           totalPages: Math.ceil(total / parseInt(limit)),
@@ -723,7 +738,7 @@ const getAllCategoryIds = async (categoryId) => {
     slug: category.slug,
     level: category.level
   }];
-  
+
   const children = await Category.find({ parent: categoryId });
 
   for (const child of children) {
@@ -767,7 +782,7 @@ const validateArticleCategoryPath = async (articleCategoryId, urlCategoryPathSlu
 
   // Get article's full category path
   const articleCategoryPath = await getCategoryPathSlugs(articleCategoryId);
-  
+
   if (articleCategoryPath.length === 0) {
     return {
       valid: false,
@@ -777,14 +792,7 @@ const validateArticleCategoryPath = async (articleCategoryId, urlCategoryPathSlu
 
   // Extract slugs from article's category path
   const articlePathSlugs = articleCategoryPath.map(cat => cat.slug);
-  
-  // Check if URL path matches any part of article's category path
-  // Article in /country/uttar-pradesh/agra should be accessible via:
-  // - /country/article-slug (matches first segment)
-  // - /country/uttar-pradesh/article-slug (matches first two segments)
-  // - /country/uttar-pradesh/agra/article-slug (matches all segments)
-  // But NOT via /business/article-slug (different parent)
-  
+
   // Check if URL path starts from the beginning of article's path
   if (articlePathSlugs.length < urlCategoryPathSlugs.length) {
     return {
@@ -857,3 +865,23 @@ const getCategoryPathIds = async (categoryId) => {
 
   return tempPath.reverse();
 };
+
+const getCategoryPathSlugsForArticle = async (categoryId) => {
+  const path = [];
+  let current = await Category.findById(categoryId);
+
+  if (!current) return path;
+
+  const tempPath = [];
+  while (current) {
+    tempPath.push(current.slug);
+    if (current.parent) {
+      current = await Category.findById(current.parent);
+    } else {
+      current = null;
+    }
+  }
+
+  return tempPath.reverse(); // Returns array like ['country', 'uttarpradesh', 'agra']
+};
+
