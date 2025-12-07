@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { Card, CardBody, Button } from "@heroui/react";
 import { Play, Calendar, MapPin } from "lucide-react";
@@ -103,33 +103,35 @@ export default function MiddleNewsSection({
   const hasImage = (a) => a?.featuredImage?.trim() !== "";
 
   // TOP STORY LOGIC --------------
-  if (topStory.length > 0) {
-    const first = topStory[0];
-    if (hasImage(first)) addToSequence("image", first, "topStory");
-  }
+  // if (topStory.length > 0) {
+  //   const first = topStory[0];
+  //   if (hasImage(first)) addToSequence("image", first, "topStory");
+  // }
 
-  if (topStory.length > 0) {
-    const first = topStory[0];
-    if (hasVideo(first) && articleSequence.length === 1) {
-      addToSequence("video", first, "topStory");
-    } else if (topStory.length > 1) {
-      const second = topStory[1];
-      if (hasImage(second) && articleSequence.length === 1) {
-        addToSequence("image", second, "topStory");
-      }
-    }
-  }
+  // if (topStory.length > 0) {
+  //   const first = topStory[0];
+  //   if (hasVideo(first) && articleSequence.length === 1) {
+  //     addToSequence("video", first, "topStory");
+  //   } else if (topStory.length > 1) {
+  //     const second = topStory[1];
+  //     if (hasImage(second) && articleSequence.length === 1) {
+  //       addToSequence("image", second, "topStory");
+  //     }
+  //   }
+  // }
 
   topStory.forEach((story) => {
     if (!usedArticleIds.has(story._id)) {
       if (hasVideo(story)) addToSequence("video", story, "topStory");
       else if (hasImage(story)) addToSequence("image", story, "topStory");
+      else addToSequence("text", story, "topStory");
     }
   });
 
   trendingArticles.forEach((a) => {
     if (hasVideo(a)) addToSequence("video", a, "trending");
     else if (hasImage(a)) addToSequence("image", a, "trending");
+    else addToSequence("text", a, "trending");
   });
 
   // REGULAR ARTICLES SPLIT ------------
@@ -140,7 +142,9 @@ export default function MiddleNewsSection({
   regularArticles.forEach((a) => {
     if (hasVideo(a)) regularVideoArticles.push(a);
     else if (hasImage(a)) regularImageArticles.push(a);
-    else regularOnlyArticles.push(a);
+    else {
+      regularOnlyArticles.push(a);
+    }
   });
 
   const patternBlocks = [];
@@ -154,10 +158,15 @@ export default function MiddleNewsSection({
 
   // BLOCK GENERATION ------------
   for (let i = 0; i < maxPatterns; i++) {
-    const block = { imageArticle: null, videoArticle: null, articles: [] };
+    const block = {
+      imageArticle: null,
+      videoArticle: null,
+      textArticle: null,
+      articles: [],
+    };
 
-    // IMAGE from sequence
-    if (sequenceIndex < articleSequence.length) {
+    // 1. IMAGE from sequence (topStory/trending)
+    if (!block.imageArticle && sequenceIndex < articleSequence.length) {
       const seqItem = articleSequence[sequenceIndex];
       if (seqItem.type === "image") {
         block.imageArticle = seqItem.article;
@@ -166,7 +175,27 @@ export default function MiddleNewsSection({
       }
     }
 
-    // fallback image
+    // 2. VIDEO from sequence
+    if (!block.videoArticle && sequenceIndex < articleSequence.length) {
+      const seqItem = articleSequence[sequenceIndex];
+      if (seqItem.type === "video") {
+        block.videoArticle = seqItem.article;
+        usedArticleIds.add(seqItem.article._id);
+        sequenceIndex++;
+      }
+    }
+
+    // 3. TEXT from sequence (topStory/trending)
+    if (!block.textArticle && sequenceIndex < articleSequence.length) {
+      const seqItem = articleSequence[sequenceIndex];
+      if (seqItem.type === "text") {
+        block.textArticle = seqItem.article;
+        usedArticleIds.add(seqItem.article._id);
+        sequenceIndex++;
+      }
+    }
+
+    // 4. fallback image from regular articles
     if (!block.imageArticle && imageIndex < regularImageArticles.length) {
       const img = regularImageArticles[imageIndex++];
       if (!usedArticleIds.has(img._id)) {
@@ -175,13 +204,12 @@ export default function MiddleNewsSection({
       }
     }
 
-    // VIDEO from sequence
-    if (!block.videoArticle && sequenceIndex < articleSequence.length) {
-      const seqItem = articleSequence[sequenceIndex];
-      if (seqItem.type === "video") {
-        block.videoArticle = seqItem.article;
-        usedArticleIds.add(seqItem.article._id);
-        sequenceIndex++;
+    // 5. fallback video from regular articles
+    if (!block.videoArticle && videoIndex < regularVideoArticles.length) {
+      const vid = regularVideoArticles[videoIndex++];
+      if (!usedArticleIds.has(vid._id)) {
+        block.videoArticle = vid;
+        usedArticleIds.add(vid._id);
       }
     }
 
@@ -298,6 +326,20 @@ export default function MiddleNewsSection({
     );
   };
 
+  const renderTextArticle = (article) => (
+    <Link key={article._id} href={buildArticleUrl(article)}>
+      <NewsCard
+        title={article.title}
+        excerpt={article.excerpt}
+        image={null}
+        location={article.category?.name}
+        date={new Date(article.publishDate).toLocaleDateString()}
+        category={article.category?.name}
+        tags={article.tags}
+      />
+    </Link>
+  );
+
   return (
     <div className="space-y-12 pb-8">
       {/* PATTERN BLOCKS (IMAGE → VIDEO → ARTICLES) */}
@@ -312,6 +354,12 @@ export default function MiddleNewsSection({
           {block.videoArticle && (
             <div className="break-inside-avoid">
               {renderVideoArticle(block.videoArticle)}
+            </div>
+          )}
+
+          {block.textArticle && (
+            <div className="break-inside-avoid">
+              {renderTextArticle(block.textArticle)}
             </div>
           )}
 

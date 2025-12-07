@@ -1,4 +1,3 @@
-
 import { Card, CardBody } from "@heroui/react";
 import { Clock } from "lucide-react";
 import Link from "next/link";
@@ -95,32 +94,35 @@ export default function RightNewsPanel({ breakingNews = [] }) {
   // ---------------------------
   return (
     <div className="space-y-6 sticky top-36">
-      <Card className="bg-white border border-gray-200 shadow-sm">
-        <CardBody className="p-4">
-          <div className="flex items-center gap-2 mb-4">
+      <Card className="bg-white border border-gray-100 shadow-md rounded-2xl">
+        <CardBody className="p-5">
+          <div className="flex items-center gap-2 mb-5">
             <Clock size={20} className="text-blue-600" />
-            <h3 className="font-bold text-lg text-gray-900">ताज़ा अपडेट</h3>
+            <h3 className="font-semibold text-xl text-gray-900">ताज़ा अपडेट</h3>
           </div>
 
           <div className="space-y-4">
             {breakingNews.length > 0 ? (
               breakingNews.map((news, index) => (
                 <Link key={news._id || index} href={buildArticleUrl(news)}>
-                  <div className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0 hover:bg-gray-50 p-2 rounded transition-colors cursor-pointer">
+                  <div className="group border border-gray-100 bg-gray-50/60 hover:bg-gray-100 rounded-xl p-3 transition-all cursor-pointer shadow-sm hover:shadow-md">
                     <div className="flex items-start gap-3">
-                      <span className="shrink-0 w-6 h-6 bg-red-100 text-red-600 rounded-full text-xs flex items-center justify-center font-bold">
+                      <span className="shrink-0 w-7 h-7 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold shadow-sm">
                         {index + 1}
                       </span>
-                      <div>
-                        <h4 className="font-medium text-sm text-gray-900 leading-tight mb-1">
+
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm text-gray-900 group-hover:text-blue-700 transition line-clamp-2">
                           {news.title}
                         </h4>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                           <span>{getTimeAgo(news.publishDate)}</span>
+
                           {news.category && (
                             <>
                               <span>•</span>
-                              <span className="text-blue-600">
+                              <span className="text-blue-600 font-medium">
                                 {news.category.name}
                               </span>
                             </>
@@ -138,54 +140,48 @@ export default function RightNewsPanel({ breakingNews = [] }) {
         </CardBody>
       </Card>
 
-      <Card className="bg-white border border-gray-200 shadow-sm">
-        <CardBody className="p-4">
-          <h3 className="font-bold text-lg text-gray-900 mb-4">
+      <Card className="bg-white border border-gray-100 shadow-md rounded-2xl">
+        <CardBody className="p-5">
+          <h3 className="font-semibold text-xl text-gray-900 mb-4">
             लोकप्रिय श्रेणियाँ
           </h3>
 
-          <div className="space-y-3">
-            {loadingCategories ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-10 bg-gray-100 rounded-lg animate-pulse"
-                ></div>
-              ))
-            ) : categories.length > 0 ? (
-              categories.map((c, index) => (
-                <Link key={index} href={`/${c.slug}`}>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${c.color}`} />
-                      <span className="font-medium text-gray-900">
-                        {c.name}
+          <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 overflow-hidden">
+            {loadingCategories
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-10 bg-gray-100 animate-pulse"></div>
+                ))
+              : categories.map((c, index) => (
+                  <Link key={index} href={`/${c.slug}`}>
+                    <div className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-all cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full ${c.color}`}
+                        ></span>
+                        <span className="font-medium text-gray-800">
+                          {c.name}
+                        </span>
+                      </div>
+
+                      <span className="px-2 py-1 rounded-md bg-gray-100 text-xs font-semibold text-gray-700">
+                        {c.count}
                       </span>
                     </div>
-
-                    <span className="bg-white px-2 py-1 rounded text-xs font-medium text-gray-700">
-                      {c.count}
-                    </span>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <p className="text-gray-500 text-sm">No categories available</p>
-            )}
+                  </Link>
+                ))}
           </div>
         </CardBody>
       </Card>
 
-      <Card className="bg-white border border-gray-200 shadow-sm">
-        <CardBody className="p-4">
-          <h3 className="font-bold text-lg text-gray-900 mb-4">मौसम</h3>
+      <Card className="bg-white border border-gray-100 shadow-md rounded-2xl">
+        <CardBody className="p-6 text-center">
+          <h3 className="font-semibold text-xl text-gray-900 mb-4">मौसम</h3>
 
-          <div className="text-center">
-            <div className="text-4xl mb-2">🌤️</div>
-            <p className="text-2xl font-bold text-gray-900">24°C</p>
-            <p className="text-gray-600">दिल्ली</p>
-            <p className="text-sm text-gray-500 mt-1">हल्की धूप के साथ</p>
-          </div>
+          <div className="text-5xl mb-3">🌤️</div>
+
+          <p className="text-3xl font-bold text-gray-900 mb-1">24°C</p>
+          <p className="text-gray-700 font-medium">दिल्ली</p>
+          <p className="text-sm text-gray-500 mt-1">हल्की धूप के साथ</p>
         </CardBody>
       </Card>
     </div>
