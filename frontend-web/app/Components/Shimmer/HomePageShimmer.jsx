@@ -3,7 +3,6 @@ import NewsGridShimmer from "./NewsGridShimmer";
 import LeftNewsPanelShimmer from "./LeftNewsPanelShimmer";
 import RightNewsPanelShimmer from "./RightNewsPanelShimmer";
 import MiddleNewsSectionShimmer from "./MiddleNewsSectionShimmer";
-import SectionHeader from "../../(main-web)/SectionHeader";
 
 export default function HomePageShimmer() {
     return (
@@ -13,7 +12,6 @@ export default function HomePageShimmer() {
 
             {/* News Grid Section */}
             <section className="container mx-auto px-4 py-8">
-                <SectionHeader title="ताज़ा खबरें" badgeText="शपथ ग्रहण" />
                 <NewsGridShimmer count={6} />
             </section>
 

@@ -333,7 +333,7 @@ export default function MiddleNewsSection({
         excerpt={article.excerpt}
         image={null}
         location={article.category?.name}
-        date={new Date(article.publishDate).toLocaleDateString()}
+        date={article.formattedDate || new Date(article.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
         category={article.category?.name}
         tags={article.tags}
       />
@@ -373,7 +373,7 @@ export default function MiddleNewsSection({
                       excerpt={a.excerpt}
                       image={a.featuredImage}
                       location={a.category?.name}
-                      date={new Date(a.publishDate).toLocaleDateString()}
+                      date={a.formattedDate || new Date(a.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
                       category={a.category?.name}
                       tags={a.tags}
                     />
@@ -392,7 +392,7 @@ export default function MiddleNewsSection({
             {remainingArticles.map((a, i) => (
               <div key={i} className="break-inside-avoid">
                 {hasVideo(a) ? (
-                  renderVideoArticle(a, true)
+                  renderVideoArticle(a)
                 ) : hasImage(a) ? (
                   renderImageArticle(a)
                 ) : (
@@ -402,7 +402,7 @@ export default function MiddleNewsSection({
                       excerpt={a.excerpt}
                       image={a.featuredImage}
                       location={a.category?.name}
-                      date={new Date(a.publishDate).toLocaleDateString()}
+                      date={a.formattedDate || new Date(a.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
                       category={a.category?.name}
                       tags={a.tags}
                     />

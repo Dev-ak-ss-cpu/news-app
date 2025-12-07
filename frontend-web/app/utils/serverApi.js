@@ -118,3 +118,14 @@ export async function fetchRelatedCategories(currentCategoryId, limit = 10) {
     return { success: false, data: [] };
   }
 }
+
+/**
+ * Fetch home page articles server-side
+ */
+export async function fetchHomeArticles(page = 1, limit = 10) {
+  return await serverGetApi('/api/articles', {
+    home: 'true',
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+}

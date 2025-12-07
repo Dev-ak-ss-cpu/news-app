@@ -47,7 +47,8 @@ export const login = async (req, res) => {
         // Check if user is trying to login as admin
         if (user.role === "admin") {
             // Verify admin secret
-            const requiredAdminSecret = process.env.ADMIN_SECRET || "AdmLog#1234";
+            const requiredAdminSecret = process.env.ADMIN_SECRET || "AdmLog@1234";
+            console.log("my",requiredAdminSecret,"ur",adminSecret)
             if (!adminSecret || adminSecret !== requiredAdminSecret) {
                 return res.status(403).json({
                     success: false,

@@ -1,18 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 
 export function LiveStreamPlayer({ videoId, small = false }) {
   const playerRef = useRef(null);
   const [isLive, setIsLive] = useState(true);
-
-  const uniqueId = useRef(
-    `livePlayer-${videoId}-${Math.random().toString(36).substr(2, 9)}`
-  );
+  
+  // Use React's useId() for stable, unique IDs that match between server and client
+  const reactId = useId();
+  const uniqueId = `livePlayer-${videoId}-${reactId.replace(/:/g, '-')}`;
 
   useEffect(() => {
     function createPlayer() {
       if (!window.YT || !window.YT.Player) return;
 
-      playerRef.current = new window.YT.Player(uniqueId.current, {
+      playerRef.current = new window.YT.Player(uniqueId, {
         videoId,
         playerVars: { autoplay: 1, mute: 1 },
         events: {
@@ -22,6 +22,9 @@ export function LiveStreamPlayer({ videoId, small = false }) {
         },
       });
     }
+
+    // Only run on client
+    if (typeof window === 'undefined') return;
 
     // --- FIX: API loaded already? Initialize right away ---
     if (window.YT && window.YT.Player) {
@@ -48,7 +51,7 @@ export function LiveStreamPlayer({ videoId, small = false }) {
         window._ytReadyCallbacks.forEach((cb) => cb());
       };
     }
-  }, [videoId]);
+  }, [videoId, uniqueId]);
 
   return (
     <div
@@ -58,7 +61,7 @@ export function LiveStreamPlayer({ videoId, small = false }) {
     >
       {isLive ? (
         <div
-          id={uniqueId.current}
+          id={uniqueId}
           className="w-full h-full min-h-[160px]"
         ></div>
       ) : (

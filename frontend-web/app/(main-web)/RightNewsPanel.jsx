@@ -96,47 +96,75 @@ export default function RightNewsPanel({ breakingNews = [] }) {
     <div className="space-y-6 sticky top-36">
       <Card className="bg-white border border-gray-100 shadow-md rounded-2xl">
         <CardBody className="p-5">
-          <div className="flex items-center gap-2 mb-5">
+          {/* <div className="flex items-center gap-2 mb-5">
             <Clock size={20} className="text-blue-600" />
             <h3 className="font-semibold text-xl text-gray-900">ताज़ा अपडेट</h3>
-          </div>
+          </div> */}
 
-          <div className="space-y-4">
+          {/* Breaking News - Urgent & Eye-catching */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-4 bg-red-600 rounded-full"></div>
+              <h3 className="font-bold text-gray-900 text-sm tracking-wide uppercase">BREAKING NEWS</h3>
+              <div className="ml-auto">
+                <div className="flex items-center gap-1 animate-pulse">
+                  <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+                  <span className="text-xs font-semibold text-red-600">LIVE</span>
+                </div>
+              </div>
+            </div>
+
             {breakingNews.length > 0 ? (
-              breakingNews.map((news, index) => (
-                <Link key={news._id || index} href={buildArticleUrl(news)}>
-                  <div className="group border border-gray-100 bg-gray-50/60 hover:bg-gray-100 rounded-xl p-3 transition-all cursor-pointer shadow-sm hover:shadow-md">
-                    <div className="flex items-start gap-3">
-                      <span className="shrink-0 w-7 h-7 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold shadow-sm">
-                        {index + 1}
-                      </span>
+              <div className="rounded-lg bg-white divide-y divide-gray-100">
+                {breakingNews.map((news, index) => (
+                  <Link key={news._id || index} href={buildArticleUrl(news)}>
+                    <div className="p-3 hover:bg-red-50/30 transition-colors duration-200 group">
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0">
+                          <span className="inline-flex items-center justify-center w-6 h-6 bg-red-600 text-white text-xs font-bold rounded-md">
+                            {index + 1}
+                          </span>
+                        </div>
 
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm text-gray-900 group-hover:text-blue-700 transition line-clamp-2">
-                          {news.title}
-                        </h4>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold text-gray-900 text-xs leading-snug group-hover:text-red-700 transition-colors">
+                              {news.title}
+                            </h4>
+                          </div>
 
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                          <span>{getTimeAgo(news.publishDate)}</span>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <span className="font-medium">{getTimeAgo(news.publishDate)}</span>
 
-                          {news.category && (
-                            <>
-                              <span>•</span>
-                              <span className="text-blue-600 font-medium">
-                                {news.category.name}
-                              </span>
-                            </>
-                          )}
+                            {news.category && (
+                              <>
+                                <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                                <span className="font-medium text-red-600">{news.category.name}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))
+                  </Link>
+                ))}
+              </div>
             ) : (
-              <p className="text-gray-500 text-sm">No breaking news</p>
+              <div className="border border-gray-200 rounded-lg p-4 text-center">
+                <svg className="w-6 h-6 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-gray-500">No breaking news at this time</p>
+              </div>
             )}
           </div>
+
         </CardBody>
       </Card>
 
@@ -149,26 +177,26 @@ export default function RightNewsPanel({ breakingNews = [] }) {
           <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 overflow-hidden">
             {loadingCategories
               ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-10 bg-gray-100 animate-pulse"></div>
-                ))
+                <div key={i} className="h-10 bg-gray-100 animate-pulse"></div>
+              ))
               : categories.map((c, index) => (
-                  <Link key={index} href={`/${c.slug}`}>
-                    <div className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-all cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`w-2.5 h-2.5 rounded-full ${c.color}`}
-                        ></span>
-                        <span className="font-medium text-gray-800">
-                          {c.name}
-                        </span>
-                      </div>
-
-                      <span className="px-2 py-1 rounded-md bg-gray-100 text-xs font-semibold text-gray-700">
-                        {c.count}
+                <Link key={index} href={`/${c.slug}`}>
+                  <div className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 transition-all cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full ${c.color}`}
+                      ></span>
+                      <span className="font-medium text-gray-800">
+                        {c.name}
                       </span>
                     </div>
-                  </Link>
-                ))}
+
+                    <span className="px-2 py-1 rounded-md bg-gray-100 text-xs font-semibold text-gray-700">
+                      {c.count}
+                    </span>
+                  </div>
+                </Link>
+              ))}
           </div>
         </CardBody>
       </Card>

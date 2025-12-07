@@ -1,140 +1,51 @@
-"use client";
-import Header from "./Components/Header";
-import HeroSection from "./(main-web)/HeroSection";
-import SectionHeader from "./(main-web)/SectionHeader";
-import NewsGrid from "./(main-web)/NewsGrid";
-import Footer from "./Components/Footer";
-import Layout from "./(main-web)/HomeLayout";
-import { Button, Calendar, HeroUIProvider } from "@heroui/react";
-import { useEffect, useState } from "react";
-import { genericGetApi, genericPostApi } from "./Helper";
-import { ToastProvider } from "@heroui/toast";
-import HomePageShimmer from "./Components/Shimmer/HomePageShimmer";
-import NewsGridShimmer from "./Components/Shimmer/NewsGridShimmer";
+import HomePageClient from "./(main-web)/HomePageClient";
+import { fetchHomeArticles } from "./utils/serverApi";
 
-export default function Page() {
-  const [breakingNews, setBreakingNews] = useState([]);
-  const [featuredArticle, setFeaturedArticle] = useState(null);
-  const [topStory, setTopStory] = useState(null);
-  const [regularArticles, setRegularArticles] = useState([]);
-  const [trendingArticles, setTrendingArticles] = useState([]);
-  const [pagination, setPagination] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+// Utility function to format dates consistently
+function formatDate(dateString) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric'
+  });
+}
 
-  const fetchArticles = async (page = 1) => {
-    try {
-      if (page === 1) {
-        setLoading(true);
-      }
+// Utility function to format article dates
+function formatArticleDates(articles) {
+  if (!articles || !Array.isArray(articles)) return articles;
+  return articles.map(article => ({
+    ...article,
+    formattedDate: formatDate(article.publishDate || article.publishedAt)
+  }));
+}
 
-      const response = await genericGetApi("/api/articles", {
-        home: "true",
-        page: page,
-        limit: 10,
-      });
+export default async function Page() {
+  // Fetch initial data on the server
+  const response = await fetchHomeArticles(1, 10);
 
-      if (response.success) {
-        const { breakingNews: breaking, center, trending } = response.data;
-
-        setBreakingNews(breaking || []);
-
-        if (center) {
-          setFeaturedArticle(center.featured);
-          setTopStory(center.topStory);
-
-          if (page === 1) {
-            setRegularArticles(center.regularArticles || []);
-          } else {
-            setRegularArticles((prev) => [
-              ...prev,
-              ...(center.regularArticles || []),
-            ]);
-          }
-
-          setPagination(center.pagination);
-          setCurrentPage(page);
-        }
-
-        setTrendingArticles(trending || []);
-      } else {
-        setError(response.message || "Failed to fetch articles");
-      }
-    } catch (error) {
-      console.error("Error fetching articles:", error);
-      setError("An error occurred while fetching articles");
-    } finally {
-      setLoading(false);
-    }
+  let initialData = {
+    breakingNews: [],
+    featuredArticle: [],
+    topStory: [],
+    regularArticles: [],
+    trendingArticles: [],
+    pagination: null,
   };
 
-  const loadMoreArticles = () => {
-    if (pagination?.hasMore && !loading) {
-      fetchArticles(currentPage + 1);
-    }
-  };
+  if (response.success) {
+    const { breakingNews, center, trending } = response.data;
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.offsetHeight - 1000
-      ) {
-        loadMoreArticles();
-      }
+    initialData = {
+      breakingNews: formatArticleDates(breakingNews || []),
+      featuredArticle: formatArticleDates(center?.featured || []),
+      topStory: formatArticleDates(center?.topStory || []), // Changed: treat as array
+      regularArticles: formatArticleDates(center?.regularArticles || []),
+      trendingArticles: formatArticleDates(trending || []),
+      pagination: center?.pagination || null,
     };
+  }
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [pagination, loading, currentPage]);
-
-  useEffect(() => {
-    fetchArticles(1);
-  }, []);
-
-  return (
-    <HeroUIProvider>
-      <ToastProvider />
-      <Header />
-      <main>
-        {/* <HeroSection /> */}
-
-        {loading && currentPage === 1 ? (
-          <HomePageShimmer />
-        ) : (
-          <>
-            {featuredArticle.length > 0 && <section className="container mx-auto px-4 py-8">
-              <SectionHeader title="विशेष समाचार" />
-              {error ? (
-                <div className="text-center py-12">
-                  <p className="text-red-600 mb-4">{error}</p>
-                  <Button onClick={fetchArticles} variant="bordered">
-                    Retry
-                  </Button>
-                </div>
-              ) : (
-                <NewsGrid articles={featuredArticle?.slice(0, 6)} />
-              )}
-            </section>}
-
-            {!loading && !error && (
-              <Layout
-                breakingNews={breakingNews}
-                featuredArticle={featuredArticle}
-                topStory={topStory}
-                regularArticles={regularArticles}
-                trendingArticles={trendingArticles}
-                loadMore={loadMoreArticles}
-                hasMore={pagination?.hasMore}
-                isLoadingMore={loading && currentPage > 1}
-              />
-            )}
-          </>
-        )}
-      </main>
-
-      <Footer />
-    </HeroUIProvider>
-  );
+  return <HomePageClient initialData={initialData} />;
 }

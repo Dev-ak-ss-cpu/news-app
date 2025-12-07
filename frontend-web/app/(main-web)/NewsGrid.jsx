@@ -12,7 +12,7 @@ export default function NewsGrid({ articles = [] }) {
               title={article.title}
               excerpt={article.excerpt}
               image={article.featuredImage}
-              date={new Date(article.publishDate).toLocaleDateString()}
+              date={article.formattedDate || new Date(article.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
               category={article.category?.name}
               tags={article.tags}
               variant={index === 0 ? "highlighted" : undefined}
