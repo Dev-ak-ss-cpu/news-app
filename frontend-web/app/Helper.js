@@ -111,3 +111,20 @@ export const getYouTubeId = (url) => {
   const match = url.match(regExp);
   return match && match[7].length === 11 ? match[7] : null;
 };
+
+export async function genericGetApiSSR(url, params = {}) {
+  const search = new URLSearchParams(params).toString();
+  const fullUrl = `${process.env.NEXT_PUBLIC_API_BASE}${url}?${search}`;
+
+  try {
+    const res = await fetch(fullUrl, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    return await res.json();
+  } catch (error) {
+    console.error("SSR fetch error:", error);
+    return { success: false, message: "Server fetch failed" };
+  }
+}

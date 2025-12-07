@@ -157,7 +157,9 @@ export const getArticlesByCategoryPath = async (req, res) => {
     const articlesWithPaths = await Promise.all(
       articles.map(async (article) => {
         const articleObj = article.toObject();
-        articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(article.category._id);
+        articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(
+          article.category._id
+        );
         return articleObj;
       })
     );
@@ -211,7 +213,6 @@ const getHomePageData = async (req, res) => {
     const featuredArticle = await Article.find({
       status: 1,
       isFeatured: true,
-      // featuredImage: { $ne: "" },
     })
       .populate("category", "name slug parent level")
       .sort({ publishDate: -1 });
@@ -238,9 +239,7 @@ const getHomePageData = async (req, res) => {
     // Get IDs to exclude from regular articles
     const featuredArticleIds = featuredArticle?.map((article) => article._id);
     const topStoryIds = topStory.map((story) => story._id);
-    const excludedIds = [...featuredArticleIds, ...topStoryIds].filter(
-      Boolean
-    );
+    const excludedIds = [...featuredArticleIds, ...topStoryIds].filter(Boolean);
 
     // Fetch regular articles (center - paginated)
     const regularArticles = await Article.find({
@@ -262,7 +261,9 @@ const getHomePageData = async (req, res) => {
       return Promise.all(
         articles.map(async (article) => {
           const articleObj = article.toObject();
-          articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(article.category._id);
+          articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(
+            article.category._id
+          );
           return articleObj;
         })
       );
@@ -387,14 +388,15 @@ export const getAllArticles = async (req, res) => {
     const articlesWithPaths = await Promise.all(
       articles.map(async (article) => {
         const articleObj = article.toObject();
-        articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(article.category._id);
+        articleObj.categoryPathSlugs = await getCategoryPathSlugsForArticle(
+          article.category._id
+        );
         return articleObj;
       })
     );
 
-
     const total = await Article.countDocuments(query);
-    
+
     res.status(200).json({
       success: true,
       data: {
@@ -484,7 +486,9 @@ export const getArticleBySlug = async (req, res) => {
       if (!validation.valid) {
         return res.status(403).json({
           success: false,
-          message: validation.message || "Article does not belong to the specified category path",
+          message:
+            validation.message ||
+            "Article does not belong to the specified category path",
         });
       }
     }
@@ -541,7 +545,7 @@ export const getArticleStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log("err", error)
+    console.log("err", error);
     res.status(500).json({
       success: false,
       message: error.message || "Error fetching article statistics",
@@ -721,9 +725,6 @@ export const deleteArticle = async (req, res) => {
   }
 };
 
-
-
-
 // Helper Function - Updated to include category names
 const getAllCategoryIds = async (categoryId) => {
   const category = await Category.findById(categoryId);
@@ -732,12 +733,14 @@ const getAllCategoryIds = async (categoryId) => {
   }
 
   const categoryIds = [categoryId];
-  const categories = [{
-    _id: category._id,
-    name: category.name,
-    slug: category.slug,
-    level: category.level
-  }];
+  const categories = [
+    {
+      _id: category._id,
+      name: category.name,
+      slug: category.slug,
+      level: category.level,
+    },
+  ];
 
   const children = await Category.find({ parent: categoryId });
 
@@ -762,7 +765,7 @@ const getCategoryPathSlugs = async (categoryId) => {
     tempPath.push({
       _id: current._id.toString(),
       slug: current.slug,
-      name: current.name
+      name: current.name,
     });
     if (current.parent) {
       current = await Category.findById(current.parent);
@@ -775,7 +778,10 @@ const getCategoryPathSlugs = async (categoryId) => {
 };
 
 // Validate if article belongs to the category path in URL
-const validateArticleCategoryPath = async (articleCategoryId, urlCategoryPathSlugs) => {
+const validateArticleCategoryPath = async (
+  articleCategoryId,
+  urlCategoryPathSlugs
+) => {
   if (!urlCategoryPathSlugs || urlCategoryPathSlugs.length === 0) {
     return { valid: true, message: null };
   }
@@ -786,18 +792,18 @@ const validateArticleCategoryPath = async (articleCategoryId, urlCategoryPathSlu
   if (articleCategoryPath.length === 0) {
     return {
       valid: false,
-      message: "Article category not found"
+      message: "Article category not found",
     };
   }
 
   // Extract slugs from article's category path
-  const articlePathSlugs = articleCategoryPath.map(cat => cat.slug);
+  const articlePathSlugs = articleCategoryPath.map((cat) => cat.slug);
 
   // Check if URL path starts from the beginning of article's path
   if (articlePathSlugs.length < urlCategoryPathSlugs.length) {
     return {
       valid: false,
-      message: "URL category path is longer than article's category path"
+      message: "URL category path is longer than article's category path",
     };
   }
 
@@ -806,7 +812,9 @@ const validateArticleCategoryPath = async (articleCategoryId, urlCategoryPathSlu
     if (articlePathSlugs[i] !== urlCategoryPathSlugs[i]) {
       return {
         valid: false,
-        message: `Category path mismatch. Article belongs to ${articlePathSlugs.join('/')}, but URL has ${urlCategoryPathSlugs.join('/')}`
+        message: `Category path mismatch. Article belongs to ${articlePathSlugs.join(
+          "/"
+        )}, but URL has ${urlCategoryPathSlugs.join("/")}`,
       };
     }
   }
@@ -884,4 +892,3 @@ const getCategoryPathSlugsForArticle = async (categoryId) => {
 
   return tempPath.reverse(); // Returns array like ['country', 'uttarpradesh', 'agra']
 };
-
