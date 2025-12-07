@@ -4,6 +4,7 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../utils/cloudinary.js";
+import { transliterate } from "transliteration";
 
 export const createArticle = async (req, res) => {
   try {
@@ -674,7 +675,11 @@ export const updateArticle = async (req, res) => {
     }
 
     // Update other fields
-    if (title !== undefined) article.title = title;
+    if (title !== undefined) {
+      article.title = title;
+      // Force slug regeneration by marking title as modified
+      article.markModified('title');
+    }
     if (excerpt !== undefined) article.excerpt = excerpt;
     if (content !== undefined) article.content = content;
     if (youtubeVideo !== undefined) article.youtubeVideo = youtubeVideo;

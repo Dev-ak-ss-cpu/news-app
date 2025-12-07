@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { transliterate } from "transliteration";
 
 const articleSchema = new mongoose.Schema(
   {
@@ -101,7 +102,44 @@ articleSchema.index({ isTopStory: 1 });
 articleSchema.pre("save", async function (next) {
   if (this.isModified("title")) {
     const slugify = (await import("slugify")).default;
-    this.slug = slugify(this.title, { lower: true, strict: true });
+    
+    // First transliterate Hindi to English
+    let transliteratedTitle = transliterate(this.title, { 
+      unknown: '' // Remove unknown characters instead of replacing with [?]
+    });
+    
+    // Clean up the transliterated text - remove any remaining special characters
+    transliteratedTitle = transliteratedTitle.trim();
+    
+    // Then slugify the transliterated text
+    this.slug = slugify(transliteratedTitle, { 
+      lower: true, 
+      strict: true,
+      remove: /[*+~.()'"!:@]/g
+    });
+    
+    // If slug is empty or too short after transliteration, use a fallback
+    if (!this.slug || this.slug.trim().length === 0) {
+      // Use a combination of timestamp and random string
+      this.slug = `article-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    }
+    
+    // Ensure slug is unique by checking if it already exists
+    const existingArticle = await mongoose.model("Article").findOne({ 
+      slug: this.slug,
+      _id: { $ne: this._id } // Exclude current document if updating
+    });
+    
+    if (existingArticle) {
+      // Append a number to make it unique
+      let counter = 1;
+      let uniqueSlug = `${this.slug}-${counter}`;
+      while (await mongoose.model("Article").findOne({ slug: uniqueSlug })) {
+        counter++;
+        uniqueSlug = `${this.slug}-${counter}`;
+      }
+      this.slug = uniqueSlug;
+    }
   }
   next();
 });

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { transliterate } from "transliteration";
 
 const categorySchema = new mongoose.Schema(
   {
@@ -64,7 +65,42 @@ categorySchema.methods.getFullPath = async function () {
 categorySchema.pre("save", async function (next) {
   if (this.isModified("name")) {
     const slugify = (await import("slugify")).default;
-    this.slug = slugify(this.name, { lower: true, strict: true });
+    
+    // First transliterate Hindi to English
+    let transliteratedName = transliterate(this.name, { 
+      unknown: '' // Remove unknown characters
+    });
+    
+    // Clean up the transliterated text
+    transliteratedName = transliteratedName.trim();
+    
+    // Then slugify the transliterated text
+    this.slug = slugify(transliteratedName, { 
+      lower: true, 
+      strict: true,
+      remove: /[*+~.()'"!:@]/g
+    });
+    
+    // If slug is empty or too short after transliteration, use a fallback
+    if (!this.slug || this.slug.trim().length === 0) {
+      this.slug = `category-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    }
+    
+    // Ensure slug is unique
+    const existingCategory = await mongoose.model("Category").findOne({ 
+      slug: this.slug,
+      _id: { $ne: this._id }
+    });
+    
+    if (existingCategory) {
+      let counter = 1;
+      let uniqueSlug = `${this.slug}-${counter}`;
+      while (await mongoose.model("Category").findOne({ slug: uniqueSlug })) {
+        counter++;
+        uniqueSlug = `${this.slug}-${counter}`;
+      }
+      this.slug = uniqueSlug;
+    }
   }
 
   if (this.parent) {
