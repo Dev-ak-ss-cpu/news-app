@@ -1,5 +1,6 @@
 import "@/app/globals.css";
 import Providers from "@/app/Providers";
+import AuthMiddleware from "./AuthMiddleware";
 
 export const metadata = {
     title: "Admin Dashboard",
@@ -9,7 +10,9 @@ export const metadata = {
 export default function AdminLayout({ children }) {
     return (
         <Providers>
-            <main>{children}</main>
+            <AuthMiddleware>
+                <main>{children}</main>
+            </AuthMiddleware>
         </Providers>
     );
 }

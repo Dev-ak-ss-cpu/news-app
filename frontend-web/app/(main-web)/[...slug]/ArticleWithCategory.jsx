@@ -35,12 +35,14 @@ import TrendingArticles from '@/app/Components/TrendingArticles';
 import RelatedArticles from '@/app/Components/RelatedArticles';
 import RelatedCategories from '@/app/Components/RelatedCategories';
 import { buildArticleUrl } from "@/app/utils/articleUrl";
+import ArticleListShimmer from '@/app/Components/Shimmer/ArticleListShimmer'; // Add import
 
 export default function CategoryListing({ categoryData, sidebarData = {} }) {
     const [articles, setArticles] = useState(categoryData?.articles || []);
     const [pagination, setPagination] = useState(categoryData?.pagination || null);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(!categoryData); // Track initial load
     const [sortBy, setSortBy] = useState('latest');
     const [timeFilter, setTimeFilter] = useState('all');
     const category = categoryData?.category;
@@ -55,39 +57,74 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
 
     const pathSegments = categoryPath.map((p) => p?.slug || '').filter(Boolean);
 
-    // Mock data for related categories and trending topics
-    const relatedCategories = [
-        { name: "Elections", slug: "elections", count: 124 },
-        { name: "Government", slug: "government", count: 89 },
-        { name: "Policy", slug: "policy", count: 67 },
-        { name: "Development", slug: "development", count: 156 }
-    ];
+    // Helper function to calculate date range based on time filter
+    const getDateRange = (filter) => {
+        const now = new Date();
+        let startDate = null;
+        let endDate = null;
 
-    const trendingTopics = [
-        { name: "Budget 2024", articles: 45 },
-        { name: "Infrastructure", articles: 32 },
-        { name: "Education", articles: 28 },
-        { name: "Healthcare", articles: 23 }
-    ];
+        switch (filter) {
+            case 'today':
+                startDate = new Date(now);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(now);
+                endDate.setHours(23, 59, 59, 999);
+                break;
+            case 'week':
+                startDate = new Date(now);
+                startDate.setDate(now.getDate() - 7);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(now);
+                endDate.setHours(23, 59, 59, 999);
+                break;
+            case 'month':
+                startDate = new Date(now);
+                startDate.setDate(now.getDate() - 30);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(now);
+                endDate.setHours(23, 59, 59, 999);
+                break;
+            case 'all':
+            default:
+                startDate = null;
+                endDate = null;
+                break;
+        }
 
-    const regionalNews = [
-        { state: "Uttar Pradesh", articles: 156, trending: true },
-        { state: "Maharashtra", articles: 142, trending: false },
-        { state: "Delhi", articles: 98, trending: true },
-        { state: "Karnataka", articles: 87, trending: false }
-    ];
+        return {
+            startDate: startDate ? startDate.toISOString() : null,
+            endDate: endDate ? endDate.toISOString() : null
+        };
+    };
 
-    // FIXED: Load more articles function - appends to existing articles
-    const loadMoreArticles = async (page) => {
+    // Load articles with filters
+    const loadArticles = async (page = 1, reset = false) => {
         if (!category || loading) return;
 
         try {
             setLoading(true);
-            const result = await fetchCategoryData(pathSegments, page, 12);
+            if (reset || page === 1) {
+                setInitialLoading(true); // Show shimmer on filter change
+            }
+
+            // Get date range based on time filter
+            const { startDate, endDate } = getDateRange(timeFilter);
+
+            const result = await fetchCategoryData(
+                pathSegments,
+                page,
+                12,
+                startDate,
+                endDate,
+                sortBy
+            );
 
             if (result.success && result.data) {
-                // Key change: Append articles instead of replacing
-                setArticles((prev) => [...prev, ...(result.data.articles || [])]);
+                if (reset || page === 1) {
+                    setArticles(result.data.articles || []);
+                } else {
+                    setArticles((prev) => [...prev, ...(result.data.articles || [])]);
+                }
                 setPagination(result.data.pagination);
                 setCurrentPage(page);
             }
@@ -95,8 +132,22 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
             console.error("Error loading articles:", error);
         } finally {
             setLoading(false);
+            setInitialLoading(false);
         }
     };
+
+    // Load more articles function
+    const loadMoreArticles = async (page) => {
+        await loadArticles(page, false);
+    };
+
+    // Effect to reload articles when filters change
+    useEffect(() => {
+        if (categoryData) {
+            // Reset to page 1 and reload when filters change
+            loadArticles(1, true);
+        }
+    }, [timeFilter, sortBy]);
 
     // Reset articles when category changes
     useEffect(() => {
@@ -104,8 +155,14 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
             setArticles(categoryData.articles || []);
             setPagination(categoryData.pagination);
             setCurrentPage(1);
+            setInitialLoading(false);
+            // Reset filters to default when category changes
+            setTimeFilter('all');
+            setSortBy('latest');
+        } else {
+            setInitialLoading(true);
         }
-    }, [categoryData]);
+    }, [categoryData?.category?.current?._id]); // Only when category ID changes
 
     // Get category icon based on category name
     const getCategoryIcon = (categoryName) => {
@@ -153,17 +210,17 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
         });
     }
 
-    if (currentCategoryName && currentCategoryName !== 'Category') {
-        breadcrumbItems.push({
-            href: "#",
-            label: currentCategoryName,
-            isCurrent: true
-        });
-    }
+    // if (currentCategoryName && currentCategoryName !== 'Category') {
+    //     breadcrumbItems.push({
+    //         href: "#",
+    //         label: currentCategoryName,
+    //         isCurrent: true
+    //     });
+    // }
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Header />
+            {/* <Header /> */}
 
             {/* Breadcrumb */}
             <div className="bg-white border-b border-gray-200">
@@ -257,7 +314,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                     <Tabs
                                         aria-label="Filter by time"
                                         selectedKey={timeFilter}
-                                        onSelectionChange={setTimeFilter}
+                                        onSelectionChange={(key) => setTimeFilter(key)}
                                         size="sm"
                                     >
                                         <Tab key="all" title="All Time" />
@@ -272,7 +329,10 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                             size="sm"
                                             className="min-w-32"
                                             selectedKeys={[sortBy]}
-                                            onChange={(e) => setSortBy(e.target.value)}
+                                            onSelectionChange={(keys) => {
+                                                const selected = Array.from(keys)[0];
+                                                if (selected) setSortBy(selected);
+                                            }}
                                         >
                                             <SelectItem key="latest" value="latest">Latest</SelectItem>
                                             <SelectItem key="popular" value="popular">Most Popular</SelectItem>
@@ -283,8 +343,10 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                             </CardBody>
                         </Card>
 
-                        {/* Articles Grid */}
-                        {articles.length > 0 ? (
+                        {/* Show Shimmer on Initial Load or Filter Change */}
+                        {(initialLoading || (loading && articles.length === 0)) ? (
+                            <ArticleListShimmer count={6} />
+                        ) : articles.length > 0 ? (
                             <div className="space-y-6">
                                 {articles.map((article, index) => {
                                     const articleCategory = typeof article.category === 'object' && article.category !== null
@@ -295,7 +357,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                         <Card key={article._id || article.id || `article-${index}`} className="hover:shadow-md transition-shadow">
                                             <CardBody className="p-6">
                                                 <div className="flex flex-col md:flex-row gap-4">
-                                                    <div className="w-full md:w-48 h-32 rounded-lg overflow-hidden flex-shrink-0">
+                                                    <div className="w-full md:w-48 h-32 rounded-lg overflow-hidden shrink-0">
                                                         {article.featuredImage ? (
                                                             <img
                                                                 src={article.featuredImage}
@@ -304,12 +366,11 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                                                 loading="lazy"
                                                             />
                                                         ) : (
-                                                            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                                            <div className="w-full h-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                                                                 <Landmark size={32} className="text-white/80" />
                                                             </div>
                                                         )}
                                                     </div>
-
 
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-3 mb-2">
@@ -351,7 +412,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                                                 </Button>
                                                                 <div className="flex items-center gap-1 text-gray-500">
                                                                     <Eye size={14} />
-                                                                    <span className="text-xs">2.4k</span>
+                                                                    <span className="text-xs">{article.views || 0}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -362,7 +423,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                     );
                                 })}
 
-                                {/* FIXED: Load More Button - Same as first component */}
+                                {/* Load More Button */}
                                 {pagination && pagination.currentPage < pagination.totalPages && (
                                     <div className="text-center mt-12">
                                         <Button
@@ -383,22 +444,105 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                 )}
                             </div>
                         ) : (
-                            <Card className="text-center py-16">
-                                <CardBody>
-                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Landmark size={24} className="text-gray-400" />
+                            <Card className="border-0 shadow-lg bg-linear-to-br from-white to-gray-50">
+                                <CardBody className="py-20 px-8">
+                                    <div className="max-w-md mx-auto text-center">
+                                        {/* Icon Container with Animation */}
+                                        <div className="relative mb-8 inline-block">
+                                            <div className="absolute inset-0 bg-blue-500/10 rounded-full blur-2xl animate-pulse"></div>
+                                            <div className="relative w-24 h-24 bg-linear-to-br from-blue-100 to-indigo-100 rounded-3xl flex items-center justify-center mx-auto shadow-lg">
+                                                <Landmark size={40} className="text-blue-600" />
+                                            </div>
+                                            {/* Decorative dots */}
+                                            <div className="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full"></div>
+                                            <div className="absolute -bottom-2 -left-2 w-3 h-3 bg-blue-400 rounded-full"></div>
+                                        </div>
+
+                                        {/* Heading */}
+                                        <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                                            {timeFilter !== 'all' ? 'No Recent Articles' : 'No Articles Yet'}
+                                        </h3>
+
+                                        {/* Description */}
+                                        <p className="text-gray-600 text-base md:text-lg mb-8 leading-relaxed">
+                                            {timeFilter !== 'all'
+                                                ? `We couldn't find any articles ${timeFilter === 'today' ? 'published today' :
+                                                    timeFilter === 'week' ? 'from this week' :
+                                                        'from this month'
+                                                }. Try expanding your timeframe or explore other categories.`
+                                                : `There are no articles in ${currentCategoryName} at the moment. Check back soon for the latest updates and stories.`
+                                            }
+                                        </p>
+
+                                        {/* Action Buttons */}
+                                        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                                            {timeFilter !== 'all' && (
+                                                <Button
+                                                    color="primary"
+                                                    variant="solid"
+                                                    size="lg"
+                                                    onPress={() => setTimeFilter('all')}
+                                                    className="font-semibold px-8 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all"
+                                                    startContent={<Eye size={18} />}
+                                                >
+                                                    View All Articles
+                                                </Button>
+                                            )}
+                                            <Button
+                                                color={timeFilter !== 'all' ? 'default' : 'primary'}
+                                                variant={timeFilter !== 'all' ? 'bordered' : 'solid'}
+                                                size="lg"
+                                                as={Link}
+                                                href="/"
+                                                className={`font-semibold px-8 ${timeFilter === 'all' ? 'shadow-lg shadow-blue-500/30' : ''}`}
+                                                startContent={<Home size={18} />}
+                                            >
+                                                Explore Categories
+                                            </Button>
+                                        </div>
+
+                                        {/* Additional Suggestions */}
+                                        {timeFilter !== 'all' && (
+                                            <div className="mt-10 pt-8 border-t border-gray-200">
+                                                <p className="text-sm text-gray-500 mb-4 font-medium">Popular Categories</p>
+                                                <div className="flex flex-wrap gap-2 justify-center">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="flat"
+                                                        color="primary"
+                                                        as={Link}
+                                                        href="/politics"
+                                                        className="font-medium"
+                                                    >
+                                                        Politics
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="flat"
+                                                        color="primary"
+                                                        as={Link}
+                                                        href="/country"
+                                                        className="font-medium"
+                                                    >
+                                                        National
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="flat"
+                                                        color="primary"
+                                                        as={Link}
+                                                        href="/sports"
+                                                        className="font-medium"
+                                                    >
+                                                        Sports
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                        No Articles Found
-                                    </h3>
-                                    <p className="text-gray-600 mb-6">
-                                        There are no articles published in {currentCategoryName} yet.
-                                    </p>
-                                    <Button color="primary" as={Link} href="/">
-                                        Browse Other Categories
-                                    </Button>
                                 </CardBody>
                             </Card>
+
                         )}
 
                         {/* Loading Spinner */}
@@ -412,35 +556,22 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                     {/* Sidebar */}
                     <aside className="w-full lg:w-1/3 space-y-6">
                         {/* Related Articles from Same Category */}
-                        <RelatedArticles 
+                        <RelatedArticles
                             articles={sidebarData.relatedArticles || []}
                             title="Other News from This Category"
                         />
 
                         {/* Related Categories */}
-                        <RelatedCategories 
+                        <RelatedCategories
                             categories={sidebarData.relatedCategories || []}
                             title="Related Categories"
                         />
 
                         {/* Trending Topics - Using reusable component */}
-                        <TrendingArticles 
+                        <TrendingArticles
                             articles={sidebarData.trendingArticles || []}
                             title="Trending Topics"
                         />
-
-                        {/* Newsletter Signup */}
-                        <Card className="bg-gradient-to-br from-blue-600 to-purple-700 text-white">
-                            <CardBody className="p-6 text-center">
-                                <h3 className="font-bold text-lg mb-2">Stay Updated</h3>
-                                <p className="text-blue-100 text-sm mb-4">
-                                    Get the latest news from {currentCategoryName} delivered to your inbox
-                                </p>
-                                <Button color="default" variant="solid" fullWidth>
-                                    Subscribe to Newsletter
-                                </Button>
-                            </CardBody>
-                        </Card>
                     </aside>
                 </div>
             </div>
@@ -462,11 +593,8 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                             <Button color="primary" variant="flat" as={Link} href="/country">
                                 National
                             </Button>
-                            <Button color="primary" variant="flat" as={Link} href="/uttar-pradesh">
-                                Uttar Pradesh
-                            </Button>
-                            <Button color="primary" variant="flat" as={Link} href="/categories">
-                                All Categories
+                            <Button color="primary" variant="flat" as={Link} href="/sports">
+                                Sports
                             </Button>
                         </div>
                     </div>

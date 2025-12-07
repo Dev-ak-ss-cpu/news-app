@@ -25,3 +25,54 @@
 .space-y-3::-webkit-scrollbar-thumb:hover {
     background: #303030;
 }
+
+/* Enhanced Shimmer Animation */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.shimmer {
+    animation: shimmer 1.5s infinite linear;
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 0%,
+        #f0f0f0 30%,
+        #e0e0e0 50%,
+        #f0f0f0 70%,
+        #f0f0f0 100%
+    );
+    background-size: 200% 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Alternative shimmer with more visible effect */
+.shimmer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: shimmer-sweep 1.5s infinite;
+}
+
+@keyframes shimmer-sweep {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}

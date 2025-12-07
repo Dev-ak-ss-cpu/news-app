@@ -31,7 +31,7 @@ export default function ArticleDetails({
                         <ArticleContent article={article} />
                     </div>
 
-                    <div className="hidden lg:block w-80 flex-shrink-0">
+                    <div className="hidden lg:block w-80 shrink-0">
                         <ArticleSidebar 
                             article={article}
                             sidebarData={sidebarData}

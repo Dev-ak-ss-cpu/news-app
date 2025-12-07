@@ -37,7 +37,8 @@ import {
     Divider,
     Progress,
     Checkbox,
-    Tooltip
+    Tooltip,
+    User
 } from '@heroui/react';
 import {
     Plus,
@@ -65,11 +66,13 @@ import {
     Crown,
     Award,
     Flame,
-    ChevronDown
+    ChevronDown,
+    LogOut
 } from 'lucide-react';
 import { genericGetApi, genericPutApi, genericDeleteApi } from '@/app/Helper';
 import { toast } from '@heroui/react';
 import ConfirmationModal from '@/app/Components/ConfirmationPopup';
+import { getUserData, logout } from "@/app/utils/auth";
 
 export default function NewsDashboard() {
     const router = useRouter();
@@ -134,6 +137,8 @@ export default function NewsDashboard() {
         featured: 0,
         topStories: 0,
     });
+
+    const [userData, setUserData] = useState(null);
 
     // Status options
     const statusOptions = [
@@ -328,6 +333,12 @@ export default function NewsDashboard() {
     useEffect(() => {
         fetchStats();
     }, [fetchStats]);
+
+    // Get user data on mount
+    useEffect(() => {
+        const user = getUserData();
+        setUserData(user);
+    }, []);
 
     // Sync local state with query params
     useEffect(() => {
@@ -596,13 +607,15 @@ export default function NewsDashboard() {
     };
 
     const getStatusIcon = (status) => {
-        switch (status) {
-            case 0: return <Clock size={14} />;
-            case 1: return <Eye size={14} />;
-            case 2: return <Archive size={14} />;
-            default: return null;
+        const numericStatus = parseInt(status);
+        switch (numericStatus) {
+            case 0: return <Clock size={14} />
+            case 1: return <Eye size={14} />
+            case 2: return <Archive size={14} />
+            default: return null
         }
-    };
+    }
+    
 
     const getStatusLabel = (status) => {
         switch (status) {
@@ -623,21 +636,32 @@ export default function NewsDashboard() {
         });
     };
 
+    // Handle logout
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.push('/');
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 text-gray-800 p-4 lg:p-6">
-            {/* Enhanced Header */}
+        <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 text-gray-800 p-4 lg:p-6">
+            {/* Enhanced Header with User Info */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
                 <div className="space-y-2">
-                    <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
+                    <h1 className="text-3xl lg:text-4xl font-bold bg-linear-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
                         News Dashboard
                     </h1>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-end lg:items-center">
+                    {/* User Component */}
                     <Button
                         color="primary"
                         startContent={<Plus size={18} />}
                         onPress={() => router.push('/admin/create-article')}
-                        className="bg-gradient-to-r from-gray-900 to-blue-800 text-white hover:from-gray-800 hover:to-blue-700 transition-all duration-200 shadow-lg shadow-blue-900/20 backdrop-blur-sm"
+                        className="bg-linear-to-r from-gray-900 to-blue-800 text-white hover:from-gray-800 hover:to-blue-700 transition-all duration-200 shadow-lg shadow-blue-900/20 backdrop-blur-sm"
                     >
                         New Article
                     </Button>
@@ -656,7 +680,7 @@ export default function NewsDashboard() {
                                     Total Articles
                                 </p>
                             </div>
-                            <div className="p-3 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl">
+                            <div className="p-3 bg-linear-to-br from-gray-100 to-gray-200 rounded-xl">
                                 <FileText size={24} className="text-gray-600" />
                             </div>
                         </div>
@@ -673,7 +697,7 @@ export default function NewsDashboard() {
                                     Published
                                 </p>
                             </div>
-                            <div className="p-3 bg-gradient-to-br from-green-100 to-green-200 rounded-xl">
+                            <div className="p-3 bg-linear-to-br from-green-100 to-green-200 rounded-xl">
                                 <Eye size={24} className="text-green-600" />
                             </div>
                         </div>
@@ -690,7 +714,7 @@ export default function NewsDashboard() {
                                     Drafts
                                 </p>
                             </div>
-                            <div className="p-3 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl">
+                            <div className="p-3 bg-linear-to-br from-amber-100 to-amber-200 rounded-xl">
                                 <Clock size={24} className="text-amber-600" />
                             </div>
                         </div>
@@ -707,7 +731,7 @@ export default function NewsDashboard() {
                                     Breaking News
                                 </p>
                             </div>
-                            <div className="p-3 bg-gradient-to-br from-red-100 to-red-200 rounded-xl">
+                            <div className="p-3 bg-linear-to-br from-red-100 to-red-200 rounded-xl">
                                 <Zap size={24} className="text-red-600" />
                             </div>
                         </div>
@@ -879,7 +903,7 @@ export default function NewsDashboard() {
 
                                 {/* Advanced Filters */}
                                 {advancedFiltersOpen && (
-                                    <div className="p-6 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-xl border border-blue-200/50 space-y-4">
+                                    <div className="p-6 bg-linear-to-br from-blue-50/50 to-indigo-50/50 rounded-xl border border-blue-200/50 space-y-4">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-2">
                                                 <Filter size={18} className="text-blue-600" />
@@ -994,7 +1018,7 @@ export default function NewsDashboard() {
                                                 className="text-gray-800"
                                                 removeWrapper
                                             >
-                                                <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
+                                                <TableHeader className="bg-linear-to-r from-gray-50 to-gray-100">
                                                     <TableColumn className="font-semibold text-gray-900 py-4 text-sm">ARTICLE</TableColumn>
                                                     <TableColumn className="font-semibold text-gray-900 py-4 text-sm">STATUS</TableColumn>
                                                     <TableColumn className="font-semibold text-gray-900 py-4 text-sm">FEATURES</TableColumn>
@@ -1241,7 +1265,7 @@ export default function NewsDashboard() {
                                     </div>
                                 ) : (
                                     draftArticles.slice(0, 5).map((draft) => (
-                                        <div key={draft._id} className="p-4 bg-gradient-to-r from-amber-50 to-amber-100/50 border border-amber-200 rounded-xl group hover:shadow-lg transition-all duration-200">
+                                        <div key={draft._id} className="p-4 bg-linear-to-r from-amber-50 to-amber-100/50 border border-amber-200 rounded-xl group hover:shadow-lg transition-all duration-200">
                                             <div className="flex justify-between items-start mb-3">
                                                 <Badge color="warning" size="sm" variant="flat" className="border-amber-300">DRAFT</Badge>
                                                 <span className="text-xs text-amber-600">
@@ -1313,7 +1337,7 @@ export default function NewsDashboard() {
                                     </div>
                                 ) : (
                                     breakingNewsArticles.map((article) => (
-                                        <div key={article._id} className="p-4 bg-gradient-to-r from-red-50 to-red-100/50 border border-red-200 rounded-xl group hover:shadow-lg transition-all duration-200">
+                                        <div key={article._id} className="p-4 bg-linear-to-r from-red-50 to-red-100/50 border border-red-200 rounded-xl group hover:shadow-lg transition-all duration-200">
                                             <div className="flex justify-between items-start mb-3">
                                                 <Badge color="danger" size="sm" variant="flat" className="animate-pulse border-red-300">
                                                     <AlertTriangle size={12} className="mr-1" />
@@ -1403,6 +1427,67 @@ export default function NewsDashboard() {
                             </div>
                         </CardBody>
                     </Card>
+
+
+
+                    {userData && (
+                        <div className="group relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-all duration-500" />
+
+                            <Card className="relative bg-white/80 backdrop-blur-lg border border-gray-200/40 shadow-xl shadow-blue-500/5 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 group-hover:scale-[1.02] group-hover:border-indigo-300/50">
+                                <CardBody className="p-4">
+                                    <div className="flex items-center justify-between gap-4 w-full">
+
+                                        {/* Left Section */}
+                                        <div className="flex items-center gap-4 min-w-0">
+
+                                            {/* Avatar */}
+                                            <div className="relative flex-shrink-0">
+                                                <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30 animate-gradient-shift">
+                                                    {userData.name?.[0]?.toUpperCase() || userData.email?.[0]?.toUpperCase()}
+                                                </div>
+
+                                                {/* Online */}
+                                                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white shadow-sm shadow-emerald-500/50" />
+                                            </div>
+
+                                            {/* User Info */}
+                                            <div className="flex flex-col min-w-0">
+                                                <p className="font-semibold text-gray-900 text-sm truncate">
+                                                    {userData.name || userData.email?.split('@')[0]}
+                                                </p>
+                                                <p className="text-gray-500 text-xs truncate max-w-[180px]">
+                                                    {userData.email}
+                                                </p>
+                                                <p className="text-[11px] font-medium text-gray-600 mt-0.5">
+                                                    {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'} ·{" "}
+                                                    {new Date().toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Logout Button */}
+                                        <Button
+                                            size="sm"
+                                            color="danger"
+                                            variant="flat"
+                                            className="rounded-lg flex-shrink-0"
+                                            onPress={handleLogout}
+                                        >
+                                            Logout
+                                        </Button>
+                                    </div>
+                                </CardBody>
+                            </Card>
+                        </div>
+                    )}
+
+
+
+
                 </div>
             </div>
             <ConfirmationModal

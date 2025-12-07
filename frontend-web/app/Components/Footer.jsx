@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function Footer() {
   return (
     <footer className="bg-gray-800 text-white py-8 mt-12">
@@ -5,10 +7,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4">न्यूज़</h3>
-            <p className="text-gray-400">
-              भारत का सबसे विश्वसनीय हिंदी न्यूज़ पोर्टल
-            </p>
+            <Image
+              src="/logo.png"
+              alt="JK Khabar NOW DIGITAL"
+              width={180}
+              height={180}
+              className="object-contain"
+              priority
+            />
           </div>
 
           {/* Categories */}

@@ -46,7 +46,7 @@ export default function ArticleContent({ article }) {
 
     // Advertisement component
     const AdSection = ({ title, className = "" }) => (
-        <div className={`bg-gradient-to-r from-gray-100 to-gray-200 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${className}`}>
+        <div className={`bg-linear-to-r from-gray-100 to-gray-200 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${className}`}>
             <div className="text-gray-500 font-medium mb-2">📢 {title}</div>
             <div className="text-sm text-gray-400">Advertisement</div>
             <div className="mt-2 text-xs text-gray-400">300x250</div>
@@ -128,11 +128,11 @@ export default function ArticleContent({ article }) {
                             <img
                                 src={displayImage}
                                 alt={articleData.title}
-                                className="w-full h-auto max-h-[500px] object-cover rounded-xl shadow-md"
+                                className="w-full h-auto max-h-[550px] object-cover rounded-xl shadow-md"
                             />
 
                             {/* Title Overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 rounded-b-xl">
+                            <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-4 rounded-b-xl">
                                 <p className="text-white text-sm sm:text-base font-medium text-center drop-shadow-md">
                                     {articleData.title}
                                 </p>

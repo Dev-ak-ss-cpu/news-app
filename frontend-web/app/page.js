@@ -8,7 +8,9 @@ import Layout from "./(main-web)/HomeLayout";
 import { Button, Calendar, HeroUIProvider } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { genericGetApi, genericPostApi } from "./Helper";
-import {ToastProvider} from "@heroui/toast";
+import { ToastProvider } from "@heroui/toast";
+import HomePageShimmer from "./Components/Shimmer/HomePageShimmer";
+import NewsGridShimmer from "./Components/Shimmer/NewsGridShimmer";
 
 export default function Page() {
   const [breakingNews, setBreakingNews] = useState([]);
@@ -93,48 +95,42 @@ export default function Page() {
 
   return (
     <HeroUIProvider>
-      <ToastProvider/>
+      <ToastProvider />
       <Header />
       <main>
         {/* <HeroSection /> */}
 
-        <section className="container mx-auto px-4 py-8">
-          <SectionHeader title="ताज़ा खबरें" badgeText="शपथ ग्रहण" />
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-              {/* <p className="ml-4 text-gray-600">Loading articles...</p> */}
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={fetchArticles} variant="bordered">
-                Retry
-              </Button>
-            </div>
-          ) : (
-            <NewsGrid articles={featuredArticle?.slice(0, 6)} />
-          )}
-        </section>
+        {loading && currentPage === 1 ? (
+          <HomePageShimmer />
+        ) : (
+          <>
+            {featuredArticle.length > 0 && <section className="container mx-auto px-4 py-8">
+              <SectionHeader title="विशेष समाचार" />
+              {error ? (
+                <div className="text-center py-12">
+                  <p className="text-red-600 mb-4">{error}</p>
+                  <Button onClick={fetchArticles} variant="bordered">
+                    Retry
+                  </Button>
+                </div>
+              ) : (
+                <NewsGrid articles={featuredArticle?.slice(0, 6)} />
+              )}
+            </section>}
 
-        {/* <section className="container mx-auto px-4 py-8">
-          <SectionHeader
-            title="बड़ी खबरें"
-          />
-          <NewsGrid />
-        </section> */}
-
-        {!loading && !error && (
-          <Layout
-            breakingNews={breakingNews}
-            featuredArticle={featuredArticle}
-            topStory={topStory}
-            regularArticles={regularArticles}
-            trendingArticles={trendingArticles}
-            loadMore={loadMoreArticles}
-            hasMore={pagination?.hasMore}
-            isLoadingMore={loading && currentPage > 1}
-          />
+            {!loading && !error && (
+              <Layout
+                breakingNews={breakingNews}
+                featuredArticle={featuredArticle}
+                topStory={topStory}
+                regularArticles={regularArticles}
+                trendingArticles={trendingArticles}
+                loadMore={loadMoreArticles}
+                hasMore={pagination?.hasMore}
+                isLoadingMore={loading && currentPage > 1}
+              />
+            )}
+          </>
         )}
       </main>
 

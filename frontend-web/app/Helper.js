@@ -1,11 +1,14 @@
 import axios from "axios";
 import BASE_API_URL from "./api-config";
+// Remove: import { getAuthToken } from "./utils/auth";
 
 // --------------------Api Helpers Function -------------------
 export async function genericPostApi(endpoint, params) {
   try {
+    // Remove token logic
     const { data } = await axios.post(`${BASE_API_URL}${endpoint}`, params, {
       withCredentials: true,
+      headers: {},
     });
     return data;
   } catch (error) {
@@ -19,9 +22,11 @@ export async function genericPostApi(endpoint, params) {
 
 export async function genericGetApi(endpoint, params) {
   try {
+    // Remove token logic
     const { data } = await axios.get(`${BASE_API_URL}${endpoint}`, {
       params: params,
       withCredentials: true,
+      headers: {},
     });
     return data;
   } catch (error) {
@@ -35,10 +40,13 @@ export async function genericGetApi(endpoint, params) {
 
 export async function genericPostApiWithFile(endpoint, formData) {
   try {
+    // Remove token logic
+    const headers = {
+      "Content-Type": "multipart/form-data",
+    };
+
     const { data } = await axios.post(`${BASE_API_URL}${endpoint}`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers,
       withCredentials: true,
     });
     return data;
@@ -53,10 +61,13 @@ export async function genericPostApiWithFile(endpoint, formData) {
 
 export async function genericPutApiWithFile(endpoint, formData) {
   try {
+    // Remove token logic
+    const headers = {
+      "Content-Type": "multipart/form-data",
+    };
+
     const { data } = await axios.put(`${BASE_API_URL}${endpoint}`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers,
       withCredentials: true,
     });
     return data;
@@ -71,8 +82,10 @@ export async function genericPutApiWithFile(endpoint, formData) {
 
 export async function genericPutApi(endpoint, params) {
   try {
+    // Remove token logic
     const { data } = await axios.put(`${BASE_API_URL}${endpoint}`, params, {
       withCredentials: true,
+      headers: {},
     });
     return data;
   } catch (error) {
@@ -86,9 +99,11 @@ export async function genericPutApi(endpoint, params) {
 
 export async function genericDeleteApi(endpoint, params) {
   try {
+    // Remove token logic
     const { data } = await axios.delete(`${BASE_API_URL}${endpoint}`, {
       data: params,
       withCredentials: true,
+      headers: {},
     });
     return data;
   } catch (error) {

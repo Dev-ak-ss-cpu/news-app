@@ -13,21 +13,46 @@ import {
   Home,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { genericGetApi } from "../Helper";
+
+// Helper function to build category path from root to current
+const buildCategoryPath = (category, allCategories, rootCategory) => {
+  const path = [];
+  let current = category;
+
+  // Build path from current to root
+  while (current) {
+    path.unshift(current.slug);
+    if (current.parent) {
+      // Find parent in allCategories
+      current = allCategories.find(cat => cat._id === current.parent);
+    } else {
+      current = null;
+    }
+  }
+
+  return path;
+};
 
 const NestedCategoryItem = ({
   item,
   fetchChildren,
   childrenMap,
   loadingMap,
+  parentPath = [], // Add parentPath prop
+  allCategories = [], // Add allCategories to build paths
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef(null);
 
   const hasChildren = (childrenMap[item._id] || []).length > 0;
-
   const isLoading = loadingMap[item._id];
   const childItems = childrenMap[item._id] || [];
+
+  // Build full path for this category
+  const categoryPath = [...parentPath, item.slug];
+  const categoryUrl = `/${categoryPath.join('/')}`;
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -48,7 +73,7 @@ const NestedCategoryItem = ({
       onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-red-50 text-gray-800 select-none transition-colors">
-        <Link href={`/${item.slug}`} className="flex-1 block">
+        <Link href={categoryUrl} className="flex-1 block">
           {item.name}
         </Link>
         {(hasChildren || isLoading) && (
@@ -61,10 +86,9 @@ const NestedCategoryItem = ({
           absolute left-full top-0 ml-0 border-l border-gray-100
           bg-white shadow-xl rounded-r-lg min-w-[220px] z-[50]
           transition-all duration-200 ease-in-out origin-top-left
-          ${
-            isOpen
-              ? "opacity-100 translate-x-0 pointer-events-auto"
-              : "opacity-0 -translate-x-2 pointer-events-none"
+          ${isOpen
+            ? "opacity-100 translate-x-0 pointer-events-auto"
+            : "opacity-0 -translate-x-2 pointer-events-none"
           }
         `}
         style={{ marginTop: "-1px" }}
@@ -78,6 +102,8 @@ const NestedCategoryItem = ({
             fetchChildren={fetchChildren}
             childrenMap={childrenMap}
             loadingMap={loadingMap}
+            parentPath={categoryPath} // Pass current path as parent
+            allCategories={allCategories}
           />
         ))}
       </div>
@@ -90,9 +116,18 @@ const RootCategoryItem = ({
   fetchChildren,
   childrenMap,
   loadingMap,
+  allCategories = [],
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef(null);
+
+  // Root category URL
+  const rootCategoryUrl = `/${category.slug}`;
+
+  // Safely check for children
+  const childItems = childrenMap[category._id] || [];
+  const hasChildren = childItems.length > 0;
+  const isLoading = loadingMap[category._id];
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -112,65 +147,82 @@ const RootCategoryItem = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div
-        className={`
-          flex items-center px-4 py-2 cursor-pointer font-semibold select-none transition-colors h-10 rounded-md
-          ${
-            isOpen
+      <Link href={rootCategoryUrl} className="h-full flex items-center">
+        <div
+          className={`
+            flex items-center px-4 py-2 cursor-pointer font-semibold select-none transition-colors h-10 rounded-md
+            ${isOpen
               ? "text-red-600 bg-red-50"
               : "text-gray-800 hover:text-red-600 hover:bg-red-50"
-          }
-        `}
-      >
-        <span>{category.name}</span>
-        <ChevronDown
-          size={14}
-          className={`ml-1 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
-      </div>
-
-      <div
-        className={`
-          absolute left-0 top-full pt-2 
-          transition-all duration-200 ease-in-out origin-top-left z-[2000]
-          ${
-            isOpen
-              ? "opacity-100 translate-y-0 pointer-events-auto"
-              : "opacity-0 -translate-y-2 pointer-events-none"
-          }
-        `}
-      >
-        <div className="bg-white border border-gray-100 shadow-xl rounded-lg min-w-[220px] overflow-visible">
-          {loadingMap[category._id] ? (
-            <div className="p-4 text-sm text-gray-500">Loading...</div>
-          ) : (
-            <div className="py-1">
-              {(childrenMap[category._id] || []).map((child) => (
-                <NestedCategoryItem
-                  key={child._id}
-                  item={child}
-                  fetchChildren={fetchChildren}
-                  childrenMap={childrenMap}
-                  loadingMap={loadingMap}
-                />
-              ))}
-            </div>
+            }
+          `}
+        >
+          <span>{category.name}</span>
+          {/* Only show chevron if has children or loading */}
+          {(hasChildren || isLoading) && (
+            <ChevronDown
+              size={14}
+              className={`ml-1 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+                }`}
+            />
           )}
         </div>
-      </div>
+      </Link>
+
+      {/* Only render dropdown if has children or loading */}
+      {(hasChildren || isLoading) && (
+        <div
+          className={`
+            absolute left-0 top-full pt-2 
+            transition-all duration-200 ease-in-out origin-top-left z-[2000]
+            ${isOpen
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 -translate-y-2 pointer-events-none"
+            }
+          `}
+        >
+          <div className="bg-white border border-gray-100 shadow-xl rounded-lg min-w-[220px] overflow-visible">
+            {isLoading ? (
+              <div className="p-4 text-sm text-gray-500">Loading...</div>
+            ) : (
+              <div className="py-1">
+                {childItems.map((child) => (
+                  <NestedCategoryItem
+                    key={child._id}
+                    item={child}
+                    fetchChildren={fetchChildren}
+                    childrenMap={childrenMap}
+                    loadingMap={loadingMap}
+                    parentPath={[category.slug]}
+                    allCategories={allCategories}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 export default function Header() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState([]);
+  const [allCategories, setAllCategories] = useState([]); // Store all categories for path building
 
   const [categoryChildren, setCategoryChildren] = useState({});
   const [loadingChildren, setLoadingChildren] = useState({});
+
+  // Social media links
+  const socialLinks = [
+    { Icon: Twitter, url: "https://x.com/Jkkhabarnow1/status/1966785367316586971?t=ols7eTDRQgRuzQrtJsL1nw&s=08", name: "Twitter" },
+    { Icon: Facebook, url: "https://www.facebook.com/share/v/1NUL7n5aMU/", name: "Facebook" },
+    { Icon: Instagram, url: "https://www.instagram.com/reel/DRJ9IZGj0RU/?igsh=MXdweWdnZDg3eHdkNA==", name: "Instagram" },
+    { Icon: Youtube, url: "https://youtu.be/6Vo6Ol24Euk?si=2uETIqiaZIFbt2a4", name: "YouTube" },
+  ];
 
   useEffect(() => {
     const fetchRoot = async () => {
@@ -179,7 +231,15 @@ export default function Header() {
           parent: "null",
           level: 0,
         });
-        if (res.success) setCategories(res.data || []);
+        if (res.success) {
+          setCategories(res.data || []);
+        }
+
+        // Fetch all categories for path building
+        const allRes = await genericGetApi("/api/categories");
+        if (allRes.success) {
+          setAllCategories(allRes.data || []);
+        }
       } catch (e) {
         console.error(e);
       }
@@ -208,21 +268,40 @@ export default function Header() {
 
   return (
     <header className="bg-white sticky top-0 z-[99999] shadow-sm">
-      <div className="bg-gradient-to-r from-red-600 via-red-650 to-red-700 text-white">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">न्यूज़ हिंदी</h1>
+      <div className="bg-linear-to-r from-gray-800 via-red-650 to-gray-700 text-white">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3">
+              <Image
+                src="/logo.png"
+                alt="JK Khabar NOW DIGITAL"
+                width={140}
+                height={140}
+                className="object-contain"
+                priority
+              />
+            </Link>
+          </div>
+
           <div className="hidden md:flex items-center space-x-3">
-            <span className="text-sm">हमें फॉलो करें:</span>
-            {[Facebook, Youtube, Twitter, Instagram].map((Icon, i) => (
-              <Button
+            {socialLinks.map((social, i) => (
+              <a
                 key={i}
-                isIconOnly
-                variant="light"
-                size="sm"
-                className="text-white hover:bg-red-800 rounded-full"
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={social.name}
               >
-                <Icon size={18} />
-              </Button>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  className="text-white hover:bg-red-800 rounded-full"
+                >
+                  <social.Icon size={18} />
+                </Button>
+              </a>
             ))}
           </div>
         </div>
@@ -248,11 +327,12 @@ export default function Header() {
                 fetchChildren={fetchChildren}
                 childrenMap={categoryChildren}
                 loadingMap={loadingChildren}
+                allCategories={allCategories}
               />
             ))}
           </nav>
 
-          <div className="flex items-center space-x-2">
+          {/* <div className="flex items-center space-x-2">
             {!showSearch ? (
               <Button
                 isIconOnly
@@ -288,7 +368,8 @@ export default function Header() {
             <Button isIconOnly variant="light" className="md:hidden">
               <Menu size={20} />
             </Button>
-          </div>
+          </div> */}
+
         </div>
       </div>
     </header>

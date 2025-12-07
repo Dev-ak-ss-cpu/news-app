@@ -123,7 +123,6 @@ export async function parseRoute(pathSegments) {
 
 export async function checkIfArticleSlug(slug, categoryPath = []) {
   try {
-    // Build query params if category path exists for backend validation
     const params = categoryPath.length > 0
       ? { categoryPath: categoryPath.join("/") }
       : {};
@@ -137,8 +136,9 @@ export async function checkIfArticleSlug(slug, categoryPath = []) {
       };
     }
 
-    // If 403 (Forbidden), article exists but doesn't match category path
-    if (response.success === false && response.message?.includes("category path")) {
+    if (response.success === false &&
+      typeof response.message === 'string' &&
+      response.message.includes("category path")) {
       return {
         isArticle: false,
         articleData: null,
@@ -153,12 +153,26 @@ export async function checkIfArticleSlug(slug, categoryPath = []) {
   }
 }
 
-export async function fetchCategoryData(pathSegments, page = 1, limit = 20) {
+export async function fetchCategoryData(pathSegments, page = 1, limit = 20, startDate = null, endDate = null, sortBy = 'latest') {
   try {
     const categoryPath = pathSegments.join("/");
+    const params = { 
+      page, 
+      limit,
+      sortBy
+    };
+    
+    // Only add date params if provided
+    if (startDate) {
+      params.startDate = startDate;
+    }
+    if (endDate) {
+      params.endDate = endDate;
+    }
+    
     const response = await genericGetApi(
       `/api/articles/category/${categoryPath}`,
-      { page, limit }
+      params
     );
 
     if (response.success && response.data) {
@@ -211,7 +225,6 @@ export async function initializeCategoryCache() {
   }
 }
 
-// Main route resolution function with optimized API call strategy
 export async function resolveRoute(pathSegments) {
   if (!pathSegments || !pathSegments.length) {
     return {
