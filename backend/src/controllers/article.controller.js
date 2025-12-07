@@ -100,7 +100,14 @@ export const createArticle = async (req, res) => {
 export const getArticlesByCategoryPath = async (req, res) => {
   try {
     const { categoryPath } = req.params;
-    const { page = 1, limit = 10, status = 1 } = req.query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      status = 1,
+      startDate, // Accept startDate
+      endDate,   // Accept endDate
+      sortBy = 'latest' // latest, popular, trending
+    } = req.query;
 
     const slugs = categoryPath.split("/").filter(Boolean);
 
@@ -137,19 +144,46 @@ export const getArticlesByCategoryPath = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const articles = await Article.find({
+    // Build query
+    const query = {
       category: { $in: categoryIds },
       status: status ? parseInt(status) : 1,
-    })
+    };
+
+    // Apply date filter if provided
+    if (startDate || endDate) {
+      query.publishDate = {};
+      
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        query.publishDate.$gte = start;
+      }
+      
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.publishDate.$lte = end;
+      }
+    }
+
+    // Build sort object based on sortBy
+    let sortObject = {};
+    if (sortBy === 'popular') {
+      sortObject = { views: -1, publishDate: -1 };
+    } else if (sortBy === 'trending') {
+      sortObject = { isTrending: -1, views: -1, publishDate: -1 };
+    } else {
+      sortObject = { publishDate: -1, createdAt: -1 };
+    }
+
+    const articles = await Article.find(query)
       .populate("category", "name slug parent level")
-      .sort({ publishDate: -1, createdAt: -1 })
+      .sort(sortObject)
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await Article.countDocuments({
-      category: { $in: categoryIds },
-      status: status ? parseInt(status) : 1,
-    });
+    const total = await Article.countDocuments(query);
 
     const categoryPathInfo = await getCategoryPathInfo(currentCategory._id);
 
@@ -167,7 +201,7 @@ export const getArticlesByCategoryPath = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        articles: articlesWithPaths, // Use articlesWithPaths
+        articles: articlesWithPaths,
         category: categoryPathInfo,
         pagination: {
           currentPage: parseInt(page),

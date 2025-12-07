@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { MongoDB } from "./utils/database.connection.js";
 import categoryRoutes from "./routes/category.routes.js";
 import articleRoutes from "./routes/article.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
@@ -40,6 +41,7 @@ MongoDB();
 
 app.use("/api/categories", categoryRoutes);
 app.use("/api/articles", articleRoutes);
+app.use("/api/auth", authRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}`);
