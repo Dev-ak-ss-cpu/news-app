@@ -420,10 +420,10 @@ export default function ArticleEditor() {
     }
 
     // Validate featuredImage
-    if (!article.featuredImage || article.featuredImage === "") {
-      newErrors.featuredImage = "Featured image is required";
-      isValid = false;
-    }
+    // if (!article.featuredImage || article.featuredImage === "") {
+    //   newErrors.featuredImage = "Featured image is required";
+    //   isValid = false;
+    // }
 
     // Validate publishDate
     if (!article.publishDate || article.publishDate === "") {
@@ -531,8 +531,12 @@ export default function ArticleEditor() {
           description: `Article ${status == 0 ? "saved as draft" : "published"} successfully!`,
           color: "success"
         });
-        if (!articleId && status === 1) {
+        
+        // Clear form after successful creation (new article only, not when editing)
+        if (!articleId) {
           const now = new Date();
+          
+          // Reset all form state
           setArticle({
             title: "",
             content: "",
@@ -549,11 +553,23 @@ export default function ArticleEditor() {
             metaTitle: "",
             metaDescription: "",
             publishDate: now.toISOString().split("T")[0],
-            publishTime: now.toTimeString().slice(0, 5), // Reset time
+            publishTime: now.toTimeString().slice(0, 5),
             author: "Current User",
           });
+          
+          // Clear image and video URLs
+          setImageUrl("");
+          setYoutubeUrl("");
+          setIsVideoPlaying(false);
+          
+          // Reset tag input
+          setNewTag("");
+          
+          // Reset category selection
           setCategoryPath([]);
           setCategoryLevels([categories]);
+          
+          // Clear all errors
           setErrors({
             title: "",
             excerpt: "",
@@ -563,7 +579,7 @@ export default function ArticleEditor() {
             publishDate: "",
             metaTitle: "",
             metaDescription: "",
-            articleFeatures: "", // Add this
+            articleFeatures: "",
           });
         }
       } else {
@@ -709,6 +725,7 @@ export default function ArticleEditor() {
             <CardBody className="p-0">
               <div className="quill-editor" data-field="content">
                 <ReactQuill
+                  key={article.content} // Add key to force reset
                   theme="snow"
                   value={article.content}
                   onChange={(value) => handleInputChange("content", value)}
