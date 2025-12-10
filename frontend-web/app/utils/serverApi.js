@@ -9,7 +9,7 @@ export async function serverGetApi(endpoint, params = {}) {
     const url = `${BASE_API_URL}${endpoint}${queryString ? `?${queryString}` : ''}`;
     
     const response = await fetch(url, {
-      next: { revalidate: 0 }, // Cache for 60 seconds (ISR)
+      next: { revalidate: 2 }, // Cache for 60 seconds (ISR)
       headers: {
         'Content-Type': 'application/json',
       },
