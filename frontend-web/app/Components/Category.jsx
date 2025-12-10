@@ -9,7 +9,7 @@ export default function CategoryCard({ name, count, color, icon }) {
         <div className="flex items-center justify-center gap-2 mt-auto">
           <div className={`w-2 h-2 rounded-full ${color}`}></div>
           <span className="text-sm text-gray-600 font-medium">
-            {count} खबरें
+            {count} खबरें 
           </span>
         </div>
       </CardBody>
