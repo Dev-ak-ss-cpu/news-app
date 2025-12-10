@@ -11,7 +11,7 @@ export const generateToken = async (userId, res) => {
         });
 
         const isProd = process.env.NODE_ENV === "production";
-        const domain = isProd ? ".gymfreak.store" : undefined;
+        const domain = isProd ? ".jkkhabarnow.com" : undefined;
 
         // Setting Cookie
         res.cookie("authUser", token, {

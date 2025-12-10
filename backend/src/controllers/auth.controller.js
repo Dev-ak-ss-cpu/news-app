@@ -186,7 +186,7 @@ export const logout = async (req, res) => {
             sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
             secure: process.env.NODE_ENV === "production",
             path: "/",
-            domain: process.env.NODE_ENV === "production" ? ".gymfreak.store" : undefined
+            domain: process.env.NODE_ENV === "production" ? ".jkkhabarnow.com" : undefined
         });
 
         return res.status(200).json({
