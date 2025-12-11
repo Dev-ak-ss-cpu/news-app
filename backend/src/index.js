@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.routes.js";
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "http://localhost:3000",
+  "https://news-avyy1hkjb-jknews-projects.vercel.app",
 ].filter(Boolean);
 
 dotenv.config();
@@ -34,8 +35,8 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 MongoDB();
 
