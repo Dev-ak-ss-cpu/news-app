@@ -7,13 +7,14 @@ import categoryRoutes from "./routes/category.routes.js";
 import articleRoutes from "./routes/article.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 
+dotenv.config();
+
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL.replace("https://", "https://www."),
   "http://localhost:3000",
-  "https://news-avyy1hkjb-jknews-projects.vercel.app",
 ].filter(Boolean);
 
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -21,7 +22,7 @@ app.use(
   cors({
     origin(origin, cb) {
       if (!origin) return cb(null, true);
-      if (allowedOrigins.some((allowed) => origin.startsWith(allowed))) {
+      if (allowedOrigins.includes(origin)) {
         console.log("✅ CORS allowed for:", origin);
         cb(null, true);
       } else {
