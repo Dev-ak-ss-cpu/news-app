@@ -1,13 +1,40 @@
 import { Card, CardBody } from "@heroui/react";
 import { Clock } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { buildArticleUrl } from "@/app/utils/articleUrl";
+import { Thermometer, CloudRain, Wind, Droplets, MapPin, Loader2 } from "lucide-react";
 import { genericGetApi } from "../Helper";
+import WeatherWidget from "./HomeWeather";
 
 export default function RightNewsPanel({ breakingNews = [] }) {
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const stickyRef = useRef(null);
+  const [isSticky, setIsSticky] = useState(false);
+
+  const STICKY_TOP = 120; // px → match your top-30 / top-36
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!stickyRef.current) return;
+
+      const rect = stickyRef.current.getBoundingClientRect();
+      const stuckNow = rect.top <= STICKY_TOP;
+
+      setIsSticky((prev) => {
+        // 🔁 When leaving sticky → reset internal scroll
+        if (prev && !stuckNow) {
+          stickyRef.current.scrollTop = 0;
+        }
+        return stuckNow;
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
 
   // ---------------------------
   // CATEGORY COLOR + ICON CONFIG
@@ -93,78 +120,101 @@ export default function RightNewsPanel({ breakingNews = [] }) {
 
   // ---------------------------
   return (
-    <div className="space-y-6 sticky top-36">
-      <Card className="bg-white border border-gray-100 shadow-md rounded-2xl">
-        <CardBody className="p-5">
-          {/* <div className="flex items-center gap-2 mb-5">
-            <Clock size={20} className="text-blue-600" />
-            <h3 className="font-semibold text-xl text-gray-900">ताज़ा अपडेट</h3>
-          </div> */}
-
-          {/* Breaking News - Urgent & Eye-catching */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-4 bg-red-600 rounded-full"></div>
-              <h3 className="font-bold text-gray-900 text-sm tracking-wide uppercase">BREAKING NEWS</h3>
-              <div className="ml-auto">
-                <div className="flex items-center gap-1 animate-pulse">
-                  <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                  <span className="text-xs font-semibold text-red-600">LIVE</span>
-                </div>
+    <div ref={stickyRef} className={`
+        space-y-6 py-2 sticky top-30
+        ${isSticky ? "max-h-screen overflow-y-auto" : "overflow-visible"}
+        no-scrollbar
+      `}>
+      {/* Breaking News - Compact */}
+      <Card className="bg-white border border-gray-200 shadow-sm">
+        <CardBody className="p-3">
+          {/* Compact Header */}
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">ब्रेकिंग न्यूज़</h3>
+                <p className="text-xs text-gray-500">ताज़ा अपडेट</p>
               </div>
             </div>
+            <div className="flex items-center gap-1 px-2 py-0.5 bg-red-50 rounded-full">
+              <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></div>
+              <span className="text-xs font-bold text-red-600">LIVE</span>
+            </div>
+          </div>
 
+          {/* Compact Breaking News Items */}
+          <div className="space-y-2">
             {breakingNews.length > 0 ? (
-              <div className="rounded-lg bg-white divide-y divide-gray-100">
-                {breakingNews.map((news, index) => (
-                  <Link key={news._id || index} href={buildArticleUrl(news)}>
-                    <div className="p-3 hover:bg-red-50/30 transition-colors duration-200 group">
-                      <div className="flex items-start gap-3">
-                        <div className="shrink-0">
-                          <span className="inline-flex items-center justify-center w-6 h-6 bg-red-600 text-white text-xs font-bold rounded-md">
-                            {index + 1}
-                          </span>
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-gray-900 text-xs leading-snug group-hover:text-red-700 transition-colors">
-                              {news.title}
-                            </h4>
-                          </div>
-
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <span className="font-medium">{getTimeAgo(news.publishDate)}</span>
-
-                            {news.category && (
-                              <>
-                                <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                <span className="font-medium text-red-600">{news.category.name}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+              breakingNews.map((news, index) => (
+                <Link key={news._id || index} href={buildArticleUrl(news)}>
+                  <div className="p-2 rounded-lg group hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start gap-2">
+                      {/* Red Number Badge */}
+                      <div className="shrink-0 pt-0.5">
+                        <div className="w-5 h-5 rounded bg-red-600 flex items-center justify-center text-xs font-bold text-white">
+                          {index + 1}
                         </div>
                       </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        {/* Title */}
+                        <h4 className="font-medium text-gray-900 text-sm leading-tight mb-1 group-hover:text-red-700 transition-colors line-clamp-3">
+                          {news.title}
+                        </h4>
+
+                        {/* Metadata */}
+                        <div className="flex items-center flex-wrap gap-1.5 text-xs text-gray-600">
+                          {/* Time */}
+                          <div className="flex items-center gap-1">
+                            <Clock size={10} className="text-gray-400" />
+                            <span className="text-gray-600">{getTimeAgo(news.publishDate)}</span>
+                          </div>
+
+                          {/* Category */}
+                          {news.category && (
+                            <>
+                              <span className="text-gray-300">•</span>
+                              <span className="text-red-600 font-medium">{news.category.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Arrow Indicator */}
+                      <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
-                  </Link>
-                ))}
-              </div>
+                  </div>
+                  {index < breakingNews.length - 1 && <div className="h-px bg-linear-to-r from-transparent via-gray-300 to-transparent my-2"></div>}
+
+                </Link>
+              ))
             ) : (
-              <div className="border border-gray-200 rounded-lg p-4 text-center">
-                <svg className="w-6 h-6 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-sm text-gray-500">No breaking news at this time</p>
+              <div className="text-center py-4">
+                <div className="w-4 h-4 bg-gray-300 rounded-full animate-pulse mx-auto mb-1"></div>
+                <p className="text-gray-500 text-xs">कोई ब्रेकिंग न्यूज़ नहीं</p>
               </div>
             )}
           </div>
+        </CardBody>
+      </Card>
 
+      <Card className="bg-white border border-gray-100 shadow-md rounded-2xl" style={{ minHeight: '35vh' }}>
+        <CardBody className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-xl text-gray-900">मौसम</h3>
+            <div className="flex items-center gap-2 text-sm text-blue-600">
+              <MapPin size={16} />
+              <span className="font-medium">दिल्ली, भारत</span>
+            </div>
+          </div>
+
+          <WeatherWidget />
         </CardBody>
       </Card>
 
@@ -198,18 +248,6 @@ export default function RightNewsPanel({ breakingNews = [] }) {
                 </Link>
               ))}
           </div>
-        </CardBody>
-      </Card>
-
-      <Card className="bg-white border border-gray-100 shadow-md rounded-2xl">
-        <CardBody className="p-6 text-center">
-          <h3 className="font-semibold text-xl text-gray-900 mb-4">मौसम</h3>
-
-          <div className="text-5xl mb-3">🌤️</div>
-
-          <p className="text-3xl font-bold text-gray-900 mb-1">24°C</p>
-          <p className="text-gray-700 font-medium">दिल्ली</p>
-          <p className="text-sm text-gray-500 mt-1">हल्की धूप के साथ</p>
         </CardBody>
       </Card>
     </div>

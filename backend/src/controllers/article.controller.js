@@ -107,7 +107,9 @@ export const getArticlesByCategoryPath = async (req, res) => {
       status = 1,
       startDate, // Accept startDate
       endDate,   // Accept endDate
-      sortBy = 'latest' // latest, popular, trending
+      sortBy = 'latest', // latest, popular, trending
+      isBreaking,      // Add this
+      isTrending       // Add this
     } = req.query;
 
     const slugs = categoryPath.split("/").filter(Boolean);
@@ -150,6 +152,14 @@ export const getArticlesByCategoryPath = async (req, res) => {
       category: { $in: categoryIds },
       status: status ? parseInt(status) : 1,
     };
+
+    // Add breaking and trending filters
+    if (isBreaking !== undefined) {
+      query.isBreaking = isBreaking === "true";
+    }
+    if (isTrending !== undefined) {
+      query.isTrending = isTrending === "true";
+    }
 
     // Apply date filter if provided
     if (startDate || endDate) {

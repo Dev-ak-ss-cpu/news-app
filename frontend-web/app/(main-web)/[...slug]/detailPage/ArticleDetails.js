@@ -3,7 +3,6 @@ import React from 'react';
 import ArticleHeader from './ArticleHeader';
 import ArticleContent from './ArticleContent';
 import ArticleSidebar from './ArticleSidebar';
-import Footer from '@/app/Components/Footer';
 
 export default function ArticleDetails({ 
   article, 
@@ -31,7 +30,7 @@ export default function ArticleDetails({
                         <ArticleContent article={article} />
                     </div>
 
-                    <div className="hidden lg:block w-80 shrink-0">
+                    <div className="hidden lg:block w-80 xl:w-108  shrink-0">
                         <ArticleSidebar 
                             article={article}
                             sidebarData={sidebarData}
@@ -39,8 +38,6 @@ export default function ArticleDetails({
                     </div>
                 </div>
             </main>
-
-            <Footer />
         </div>
     );
 }

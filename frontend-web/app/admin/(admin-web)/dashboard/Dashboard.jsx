@@ -66,8 +66,15 @@ import {
     Crown,
     Award,
     Flame,
-    ChevronDown,
-    LogOut
+    ChevronDown, 
+    Newspaper,
+    Sunrise,
+    Sun,
+    MoonStar,
+    Check,
+    Shield,
+    Mail,
+    LogOut,
 } from 'lucide-react';
 import { genericGetApi, genericPutApi, genericDeleteApi } from '@/app/Helper';
 import { toast } from '@heroui/react';
@@ -615,7 +622,7 @@ export default function NewsDashboard() {
             default: return null
         }
     }
-    
+
 
     const getStatusLabel = (status) => {
         switch (status) {
@@ -648,23 +655,114 @@ export default function NewsDashboard() {
 
     return (
         <div className="min-h-screen bg-linear-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 text-gray-800 p-4 lg:p-6">
-            {/* Enhanced Header with User Info */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
-                <div className="space-y-2">
-                    <h1 className="text-3xl lg:text-4xl font-bold bg-linear-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
-                        News Dashboard
-                    </h1>
+
+            {/* Design 2 Enhanced: Elegant Card-Based Layout with Lucide Icons */}
+            <div className="mb-8">
+                {/* Top Bar */}
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 flex items-center justify-center shadow-sm">
+                            <Newspaper className="w-5 h-5 text-blue-600" strokeWidth={2} />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">News Dashboard</h1>
+                            <p className="text-sm text-gray-500">Manage your articles and publications</p>
+                        </div>
+                    </div>
+
+                    {/* Time & Date */}
+                    <div className="text-right hidden md:block">
+                        <div className="flex items-center gap-2 justify-end">
+                            {new Date().getHours() < 12 ? (
+                                <Sunrise className="w-4 h-4 text-amber-500" />
+                            ) : new Date().getHours() < 18 ? (
+                                <Sun className="w-4 h-4 text-amber-500" />
+                            ) : (
+                                <MoonStar className="w-4 h-4 text-indigo-500" />
+                            )}
+                            <p className="text-sm font-medium text-gray-900">
+                                {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'}
+                            </p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            {new Date().toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric'
+                            })}
+                        </p>
+                    </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-end lg:items-center">
-                    {/* User Component */}
-                    <Button
-                        color="primary"
-                        startContent={<Plus size={18} />}
-                        onPress={() => router.push('/admin/create-article')}
-                        className="bg-linear-to-r from-gray-900 to-blue-800 text-white hover:from-gray-800 hover:to-blue-700 transition-all duration-200 shadow-lg shadow-blue-900/20 backdrop-blur-sm"
-                    >
-                        New Article
-                    </Button>
+
+                {/* User & Actions Card */}
+                <div className="bg-gradient-to-r from-white to-gray-50 border border-gray-200/60 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                        {/* User Info */}
+                        {userData && (
+                            <div className="flex items-center gap-4">
+                                <div className="relative group">
+                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-105 transition-transform duration-300">
+                                        {userData.name?.[0]?.toUpperCase() || userData.email?.[0]?.toUpperCase()}
+                                    </div>
+                                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
+                                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                                    </div>
+                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-indigo-500/0 to-purple-500/0 rounded-2xl group-hover:from-blue-500/10 group-hover:via-indigo-500/10 group-hover:to-purple-500/10 transition-all duration-300" />
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h2 className="text-lg font-semibold text-gray-900">{userData.name || userData.email?.split('@')[0]}</h2>
+                                        <span className="text-xs px-2 py-0.5 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 rounded-full font-medium border border-blue-200">
+                                            <span className="flex items-center gap-1">
+                                                <Shield className="w-3 h-3" />
+                                                Admin
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-2 flex items-center gap-1">
+                                        <Mail className="w-3.5 h-3.5 text-gray-400" />
+                                        {userData.email}
+                                    </p>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative">
+                                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping absolute opacity-75"></div>
+                                                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                            </div>
+                                            <span className="text-xs text-gray-500">Online</span>
+                                        </div>
+                                        <div className="w-px h-4 bg-gray-200"></div>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="text-xs text-gray-500 hover:text-red-600 flex items-center gap-1.5 transition-colors group"
+                                        >
+                                            <LogOut className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                            Logout
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Divider & Actions */}
+                        <div className="flex items-center gap-4">
+                            <div className="hidden lg:block w-px h-10 bg-gradient-to-b from-gray-300 to-transparent"></div>
+                            <div className="flex gap-3">
+                                <Button
+                                    color="primary"
+                                    onPress={() => router.push('/admin/create-article')}
+                                    className="bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:scale-[1.02] transition-all duration-200"
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <Plus className="w-4 h-4" />
+                                        Add New Article
+                                    </span>
+                                </Button>
+
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1427,64 +1525,6 @@ export default function NewsDashboard() {
                             </div>
                         </CardBody>
                     </Card>
-
-
-
-                    {userData && (
-                        <div className="group relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-all duration-500" />
-
-                            <Card className="relative bg-white/80 backdrop-blur-lg border border-gray-200/40 shadow-xl shadow-blue-500/5 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 group-hover:scale-[1.02] group-hover:border-indigo-300/50">
-                                <CardBody className="p-4">
-                                    <div className="flex items-center justify-between gap-4 w-full">
-
-                                        {/* Left Section */}
-                                        <div className="flex items-center gap-4 min-w-0">
-
-                                            {/* Avatar */}
-                                            <div className="relative flex-shrink-0">
-                                                <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30 animate-gradient-shift">
-                                                    {userData.name?.[0]?.toUpperCase() || userData.email?.[0]?.toUpperCase()}
-                                                </div>
-
-                                                {/* Online */}
-                                                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white shadow-sm shadow-emerald-500/50" />
-                                            </div>
-
-                                            {/* User Info */}
-                                            <div className="flex flex-col min-w-0">
-                                                <p className="font-semibold text-gray-900 text-sm truncate">
-                                                    {userData.name || userData.email?.split('@')[0]}
-                                                </p>
-                                                <p className="text-gray-500 text-xs truncate max-w-[180px]">
-                                                    {userData.email}
-                                                </p>
-                                                <p className="text-[11px] font-medium text-gray-600 mt-0.5">
-                                                    {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'} ·{" "}
-                                                    {new Date().toLocaleDateString('en-US', {
-                                                        month: 'short',
-                                                        day: 'numeric'
-                                                    })}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Logout Button */}
-                                        <Button
-                                            size="sm"
-                                            color="danger"
-                                            variant="flat"
-                                            className="rounded-lg flex-shrink-0"
-                                            onPress={handleLogout}
-                                        >
-                                            Logout
-                                        </Button>
-                                    </div>
-                                </CardBody>
-                            </Card>
-                        </div>
-                    )}
-
 
 
 

@@ -1,8 +1,9 @@
 import Image from "next/image";
+import Link from "next/link";
 
-export default function Footer() {
+export default function Footer({ rootCategories = [] }) {
   return (
-    <footer className="bg-gray-800 text-white py-8 mt-12">
+    <footer className="bg-gray-800 text-white py-8 mt-12 page-end-marker">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -21,10 +22,16 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4">श्रेणियाँ</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white">राजनीति</a></li>
-              <li><a href="#" className="hover:text-white">क्रिकेट</a></li>
-              <li><a href="#" className="hover:text-white">मनोरंजन</a></li>
-              <li><a href="#" className="hover:text-white">शहर</a></li>
+              {rootCategories.slice(0, 4).map((category) => (
+                <li key={category._id}>
+                  <Link 
+                    href={`/${category.slug}`} 
+                    className="hover:text-white transition-colors"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -32,10 +39,9 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4">जल्दी लिंक</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white">होम</a></li>
-              <li><a href="#" className="hover:text-white">ताज़ा खबर</a></li>
-              <li><a href="#" className="hover:text-white">ब्रेकिंग न्यूज़</a></li>
-              <li><a href="#" className="hover:text-white">संपर्क करें</a></li>
+              <li><Link href="/" className="hover:text-white">होम</Link></li>
+              <li><a href="/breaking" className="hover:text-white">ताज़ा खबर</a></li>
+              <li><a href="/trending" className="hover:text-white">ट्रेंडिंग न्यूज़</a></li>
             </ul>
           </div>
 
@@ -43,8 +49,8 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4">संपर्क</h4>
             <p className="text-gray-400">
-              ईमेल: contact@news.com<br />
-              फोन: +91 1234567890
+              ईमेल: nowjkkhabar@gmail.com<br />
+              फोन: +91-9873135821
             </p>
           </div>
         </div>

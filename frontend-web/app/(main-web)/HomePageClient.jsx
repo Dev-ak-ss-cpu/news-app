@@ -11,7 +11,11 @@ import { ToastProvider } from "@heroui/toast";
 import HomePageShimmer from "../Components/Shimmer/HomePageShimmer";
 import NewsGridShimmer from "../Components/Shimmer/NewsGridShimmer";
 
-export default function HomePageClient({ initialData }) {
+export default function HomePageClient({ 
+  initialData, 
+  rootCategories = [],
+  allCategories = []
+}) {
   const [breakingNews, setBreakingNews] = useState(initialData?.breakingNews || []);
   const [featuredArticle, setFeaturedArticle] = useState(initialData?.featuredArticle || null);
   const [topStory, setTopStory] = useState(initialData?.topStory || []);
@@ -87,7 +91,10 @@ export default function HomePageClient({ initialData }) {
   return (
     <HeroUIProvider>
       <ToastProvider />
-      <Header />
+      <Header 
+        initialRootCategories={rootCategories}
+        initialAllCategories={allCategories}
+      />
       <main>
         {loading && currentPage === 1 ? (
           <HomePageShimmer />
@@ -95,7 +102,7 @@ export default function HomePageClient({ initialData }) {
           <>
             {featuredArticle?.length > 0 && (
               <section className="container mx-auto px-4 py-8">
-                <SectionHeader title="Featured News" />
+                <SectionHeader title="प्रमुख समाचार" />
                 {error ? (
                   <div className="text-center py-12">
                     <p className="text-red-600 mb-4">{error}</p>
@@ -124,7 +131,7 @@ export default function HomePageClient({ initialData }) {
           </>
         )}
       </main>
-      <Footer />
+      <Footer rootCategories={rootCategories} />
     </HeroUIProvider>
   );
 }

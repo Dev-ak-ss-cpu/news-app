@@ -384,6 +384,8 @@ export default function MiddleNewsSection({
           )}
         </div>
       ))}
+      
+      <LiveStreamPlayer videoId="rEKifG2XUZg" />
 
       {/* REMAINING ARTICLES */}
       {remainingArticles.length > 0 && (
@@ -411,8 +413,6 @@ export default function MiddleNewsSection({
               </div>
             ))}
           </div>
-
-          <LiveStreamPlayer videoId="rEKifG2XUZg" />
         </div>
       )}
 
@@ -420,16 +420,16 @@ export default function MiddleNewsSection({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {categoriesLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white border rounded-xl p-6 animate-pulse"
-              ></div>
-            ))
+            <div
+              key={i}
+              className="bg-white border rounded-xl p-6 animate-pulse"
+            ></div>
+          ))
           : categories.map((c) => (
-              <Link key={c._id} href={`/${c.slug || c._id}`}>
-                <CategoryCard {...c} />
-              </Link>
-            ))}
+            <Link key={c._id} href={`/${c.slug || c._id}`}>
+              <CategoryCard {...c} />
+            </Link>
+          ))}
       </div>
 
       {/* LOAD MORE */}

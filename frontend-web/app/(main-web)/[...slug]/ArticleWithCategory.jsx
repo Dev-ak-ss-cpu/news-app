@@ -14,8 +14,6 @@ import {
     SelectItem,
     Avatar
 } from "@heroui/react";
-import Header from "@/app/Components/Header";
-import Footer from "@/app/Components/Footer";
 import Link from "next/link";
 import {
     Home,
@@ -24,7 +22,6 @@ import {
     TrendingUp,
     Eye,
     Share2,
-    Bookmark,
     Globe,
     Building,
     Landmark,
@@ -45,6 +42,8 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
     const [initialLoading, setInitialLoading] = useState(!categoryData); // Track initial load
     const [sortBy, setSortBy] = useState('latest');
     const [timeFilter, setTimeFilter] = useState('all');
+    const [isBreaking, setIsBreaking] = useState(null);      // Add this
+    const [isTrending, setIsTrending] = useState(null);        // Add this
     const category = categoryData?.category;
 
     // Safely handle category path data
@@ -116,7 +115,9 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                 12,
                 startDate,
                 endDate,
-                sortBy
+                sortBy,
+                isBreaking,      // Add this
+                isTrending        // Add this
             );
 
             if (result.success && result.data) {
@@ -147,7 +148,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
             // Reset to page 1 and reload when filters change
             loadArticles(1, true);
         }
-    }, [timeFilter, sortBy]);
+    }, [timeFilter, sortBy, isBreaking, isTrending]);  // Add isBreaking and isTrending
 
     // Reset articles when category changes
     useEffect(() => {
@@ -159,6 +160,8 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
             // Reset filters to default when category changes
             setTimeFilter('all');
             setSortBy('latest');
+            setIsBreaking(null);
+            setIsTrending(null);
         } else {
             setInitialLoading(true);
         }
@@ -271,11 +274,40 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                         </div>
 
                         <div className="hidden lg:flex items-center gap-4">
-                            <Button isIconOnly variant="light" color="default">
+                            <Button 
+                                isIconOnly 
+                                variant="light" 
+                                color="default"
+                                onClick={async () => {
+                                    const url = typeof window !== 'undefined' ? window.location.href : '';
+                                    if (navigator.share) {
+                                        try {
+                                            await navigator.share({
+                                                title: currentCategoryName,
+                                                text: `Check out ${currentCategoryName} news`,
+                                                url: url,
+                                            });
+                                        } catch (err) {
+                                            if (err.name !== 'AbortError') {
+                                                try {
+                                                    await navigator.clipboard.writeText(url);
+                                                    alert('Link copied to clipboard!');
+                                                } catch (clipboardErr) {
+                                                    console.log("Error copying:", clipboardErr);
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        try {
+                                            await navigator.clipboard.writeText(url);
+                                            alert('Link copied to clipboard!');
+                                        } catch (clipboardErr) {
+                                            console.log("Error copying:", clipboardErr);
+                                        }
+                                    }
+                                }}
+                            >
                                 <Share2 size={20} />
-                            </Button>
-                            <Button isIconOnly variant="light" color="default">
-                                <Bookmark size={20} />
                             </Button>
                         </div>
                     </div>
@@ -304,40 +336,80 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
 
             {/* Main Content with Sidebar */}
             <div className="container mx-auto px-4 py-8">
-                <div className="flex flex-col lg:flex-row gap-8">
+                <div className="flex flex-col lg:flex-row gap-8 items-start">
                     {/* Main Content */}
-                    <main className="w-full lg:w-2/3">
+                    <main className="w-full lg:flex-1 min-w-0">
                         {/* Filters and Controls */}
                         <Card className="mb-6">
                             <CardBody className="p-4">
-                                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                                    <Tabs
-                                        aria-label="Filter by time"
-                                        selectedKey={timeFilter}
-                                        onSelectionChange={(key) => setTimeFilter(key)}
-                                        size="sm"
-                                    >
-                                        <Tab key="all" title="All Time" />
-                                        <Tab key="today" title="Today" />
-                                        <Tab key="week" title="This Week" />
-                                        <Tab key="month" title="This Month" />
-                                    </Tabs>
-
-                                    <div className="flex gap-3">
-                                        <Select
-                                            label="Sort by"
+                                <div className="flex flex-col gap-4">
+                                    {/* Time Filter Tabs */}
+                                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                                        <Tabs
+                                            aria-label="Filter by time"
+                                            selectedKey={timeFilter}
+                                            onSelectionChange={(key) => setTimeFilter(key)}
                                             size="sm"
-                                            className="min-w-32"
-                                            selectedKeys={[sortBy]}
-                                            onSelectionChange={(keys) => {
-                                                const selected = Array.from(keys)[0];
-                                                if (selected) setSortBy(selected);
-                                            }}
                                         >
-                                            <SelectItem key="latest" value="latest">Latest</SelectItem>
-                                            <SelectItem key="popular" value="popular">Most Popular</SelectItem>
-                                            <SelectItem key="trending" value="trending">Trending</SelectItem>
-                                        </Select>
+                                            <Tab key="all" title="All Time" />
+                                            <Tab key="today" title="Today" />
+                                            <Tab key="week" title="This Week" />
+                                            <Tab key="month" title="This Month" />
+                                        </Tabs>
+
+                                        <div className="flex gap-3">
+                                            <Select
+                                                label="Sort by"
+                                                size="sm"
+                                                className="min-w-32"
+                                                selectedKeys={[sortBy]}
+                                                onSelectionChange={(keys) => {
+                                                    const selected = Array.from(keys)[0];
+                                                    if (selected) setSortBy(selected);
+                                                }}
+                                            >
+                                                <SelectItem key="latest" value="latest">Latest</SelectItem>
+                                                <SelectItem key="popular" value="popular">Most Popular</SelectItem>
+                                                <SelectItem key="trending" value="trending">Trending</SelectItem>
+                                            </Select>
+                                        </div>
+                                    </div>
+
+                                    {/* Breaking and Trending Filters */}
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                        <span className="text-sm font-medium text-gray-700">Filter by:</span>
+                                        <Chip
+                                            size="sm"
+                                            variant={isBreaking === true ? "solid" : "flat"}
+                                            color={isBreaking === true ? "danger" : "default"}
+                                            className="cursor-pointer"
+                                            onClick={() => setIsBreaking(isBreaking === true ? null : true)}
+                                        >
+                                            Breaking News
+                                        </Chip>
+                                        <Chip
+                                            size="sm"
+                                            variant={isTrending === true ? "solid" : "flat"}
+                                            color={isTrending === true ? "warning" : "default"}
+                                            className="cursor-pointer"
+                                            onClick={() => setIsTrending(isTrending === true ? null : true)}
+                                        >
+                                            Trending
+                                        </Chip>
+                                        {(isBreaking !== null || isTrending !== null) && (
+                                            <Chip
+                                                size="sm"
+                                                variant="flat"
+                                                color="default"
+                                                className="cursor-pointer"
+                                                onClick={() => {
+                                                    setIsBreaking(null);
+                                                    setIsTrending(null);
+                                                }}
+                                            >
+                                                Clear Filters
+                                            </Chip>
+                                        )}
                                     </div>
                                 </div>
                             </CardBody>
@@ -354,7 +426,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                         : (typeof article.category === 'string' ? article.category : currentCategoryName);
 
                                     return (
-                                        <Card key={article._id || article.id || `article-${index}`} className="hover:shadow-md transition-shadow">
+                                        <Card key={article._id || article.id || `article-${index}`} className="     ">
                                             <CardBody className="p-6">
                                                 <div className="flex flex-col md:flex-row gap-4">
                                                     <div className="w-full md:w-48 h-32 rounded-lg overflow-hidden shrink-0">
@@ -366,7 +438,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                                                 loading="lazy"
                                                             />
                                                         ) : (
-                                                            <div className="w-full h-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                                            <div className="w-full h-full bg-linear-to-br from-gray-300 to-gray-200  flex items-center justify-center">
                                                                 <Landmark size={32} className="text-white/80" />
                                                             </div>
                                                         )}
@@ -392,7 +464,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                                         </h3>
 
                                                         <p className="text-gray-600 mb-4 line-clamp-2">
-                                                            {article.description || "Read the full story for detailed coverage and analysis."}
+                                                            {article.excerpt || "Read the full story for detailed coverage and analysis."}
                                                         </p>
 
                                                         <div className="flex items-center justify-between">
@@ -402,7 +474,6 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                                                     <p className="text-sm font-medium text-gray-900">
                                                                         {article.author || 'Staff Reporter'}
                                                                     </p>
-                                                                    <p className="text-xs text-gray-500">News Desk</p>
                                                                 </div>
                                                             </div>
 
@@ -553,8 +624,8 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                         )}
                     </main>
 
-                    {/* Sidebar */}
-                    <aside className="w-full lg:w-1/3 space-y-6">
+                    {/* Sidebar - Increased size to match ArticleDetails */}
+                    <aside className="w-full lg:w-80 lg:shrink-0 space-y-6 lg:sticky lg:top-32 lg:self-start">
                         {/* Related Articles from Same Category */}
                         <RelatedArticles
                             articles={sidebarData.relatedArticles || []}
@@ -571,6 +642,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                         <TrendingArticles
                             articles={sidebarData.trendingArticles || []}
                             title="Trending Topics"
+                            maxItems={5}
                         />
                     </aside>
                 </div>
@@ -601,8 +673,6 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                 </div>
             </div>
 
-            {/* Footer */}
-            <Footer />
         </div>
     );
 }
