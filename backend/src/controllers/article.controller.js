@@ -1,5 +1,6 @@
 import { Article } from "../models/article.model.js";
 import { Category } from "../models/category.model.js";
+import { Settings } from "../models/settings.model.js";
 import {
   deleteFromCloudinary,
   uploadToCloudinary,
@@ -82,6 +83,20 @@ export const createArticle = async (req, res) => {
       publishDate: publishDate ? new Date(publishDate) : new Date(),
     });
 
+    // Set expiry dates if breaking or trending
+    if (article.isBreaking) {
+      const settings = await Settings.getSettings();
+      const expiryDate = new Date();
+      expiryDate.setHours(expiryDate.getHours() + settings.breakingNewsExpiryHours);
+      article.breakingExpiresAt = expiryDate;
+    }
+    if (article.isTrending) {
+      const settings = await Settings.getSettings();
+      const expiryDate = new Date();
+      expiryDate.setHours(expiryDate.getHours() + settings.trendingNewsExpiryHours);
+      article.trendingExpiresAt = expiryDate;
+    }
+
     await article.save();
     await article.populate("category", "name slug parent");
 
@@ -100,10 +115,13 @@ export const createArticle = async (req, res) => {
 
 export const getArticlesByCategoryPath = async (req, res) => {
   try {
+    // Check and update expired articles first
+    await checkAndUpdateExpiredArticles();
+
     const { categoryPath } = req.params;
-    const { 
-      page = 1, 
-      limit = 10, 
+    const {
+      page = 1,
+      limit = 10,
       status = 1,
       startDate, // Accept startDate
       endDate,   // Accept endDate
@@ -164,13 +182,13 @@ export const getArticlesByCategoryPath = async (req, res) => {
     // Apply date filter if provided
     if (startDate || endDate) {
       query.publishDate = {};
-      
+
       if (startDate) {
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
         query.publishDate.$gte = start;
       }
-      
+
       if (endDate) {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
@@ -230,9 +248,49 @@ export const getArticlesByCategoryPath = async (req, res) => {
   }
 };
 
+// Function to check and update expired articles
+export const checkAndUpdateExpiredArticles = async () => {
+  try {
+    const now = new Date();
+
+    // Update expired breaking news
+    await Article.updateMany(
+      {
+        isBreaking: true,
+        breakingExpiresAt: { $lte: now },
+      },
+      {
+        $set: {
+          isBreaking: false,
+          breakingExpiresAt: null,
+        },
+      }
+    );
+
+    // Update expired trending news
+    await Article.updateMany(
+      {
+        isTrending: true,
+        trendingExpiresAt: { $lte: now },
+      },
+      {
+        $set: {
+          isTrending: false,
+          trendingExpiresAt: null,
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Error updating expired articles:", error);
+  }
+};
+
 // Helper function for home page data
 const getHomePageData = async (req, res) => {
   try {
+    // Check and update expired articles first
+    await checkAndUpdateExpiredArticles();
+
     const { page = 1, limit = 10 } = req.query;
     const now = new Date();
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -276,6 +334,10 @@ const getHomePageData = async (req, res) => {
     const trendingArticles = await Article.find({
       status: 1,
       isTrending: true,
+      $or: [
+        { trendingExpiresAt: { $gt: now } },
+        { trendingExpiresAt: null },
+      ],
     })
       .populate("category", "name slug parent level")
       .sort({ publishDate: -1 })
@@ -320,6 +382,9 @@ const getHomePageData = async (req, res) => {
     const formattedTrending = await addCategoryPaths(trendingArticles);
     const formattedRegular = await addCategoryPaths(regularArticles);
 
+    // Get settings for live video ID
+    const settings = await Settings.getSettings();
+
     res.status(200).json({
       success: true,
       data: {
@@ -337,6 +402,7 @@ const getHomePageData = async (req, res) => {
           },
         },
         trending: formattedTrending,
+        liveVideoId: settings.liveVideoId || "",
       },
     });
   } catch (error) {
@@ -371,6 +437,9 @@ export const getAllArticles = async (req, res) => {
     if (home === "true") {
       return await getHomePageData(req, res);
     }
+
+    // Check and update expired articles first
+    await checkAndUpdateExpiredArticles();
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     let query = {};
@@ -464,6 +533,9 @@ export const getAllArticles = async (req, res) => {
 
 export const getArticleById = async (req, res) => {
   try {
+    // Check and update expired articles first
+    await checkAndUpdateExpiredArticles();
+
     const { id } = req.params;
 
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
@@ -504,6 +576,9 @@ export const getArticleById = async (req, res) => {
 
 export const getArticleBySlug = async (req, res) => {
   try {
+    // Check and update expired articles first
+    await checkAndUpdateExpiredArticles();
+
     const { slug } = req.params;
     // Optional: category path from query string for validation
     const { categoryPath } = req.query;
@@ -704,10 +779,30 @@ export const updateArticle = async (req, res) => {
 
     // Handle boolean fields
     if (isBreaking !== undefined) {
-      article.isBreaking = isBreaking === "true" || isBreaking === true;
+      const breakingValue = isBreaking === "true" || isBreaking === true;
+      article.isBreaking = breakingValue;
+
+      if (breakingValue && !article.breakingExpiresAt) {
+        const settings = await Settings.getSettings();
+        const expiryDate = new Date();
+        expiryDate.setHours(expiryDate.getHours() + settings.breakingNewsExpiryHours);
+        article.breakingExpiresAt = expiryDate;
+      } else {
+        article.breakingExpiresAt = null;
+      }
     }
     if (isTrending !== undefined) {
-      article.isTrending = isTrending === "true" || isTrending === true;
+      const trendingValue = isTrending === "true" || isTrending === true;
+      article.isTrending = trendingValue;
+
+      if (trendingValue && !article.trendingExpiresAt) {
+        const settings = await Settings.getSettings();
+        const expiryDate = new Date();
+        expiryDate.setHours(expiryDate.getHours() + settings.trendingNewsExpiryHours);
+        article.trendingExpiresAt = expiryDate;
+      } else {
+        article.trendingExpiresAt = null;
+      }
     }
     if (isFeatured !== undefined) {
       article.isFeatured = isFeatured === "true" || isFeatured === true;

@@ -86,6 +86,14 @@ const articleSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    breakingExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    trendingExpiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -98,6 +106,8 @@ articleSchema.index({ isBreaking: 1 });
 articleSchema.index({ isTrending: 1 });
 articleSchema.index({ isFeatured: 1 });
 articleSchema.index({ isTopStory: 1 });
+articleSchema.index({ breakingExpiresAt: 1 });
+articleSchema.index({ trendingExpiresAt: 1 });
 
 articleSchema.pre("save", async function (next) {
   if (this.isModified("title")) {
