@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LiveStreamPlayer } from "../Components/LiveStreamPlayer";
 import { buildArticleUrl } from "@/app/utils/articleUrl";
 
-export default function LeftNewsPanel({ trendingArticles = [] }) {
+export default function LeftNewsPanel({ trendingArticles = [], liveVideoId = "" }) {
   const getTimeAgo = (date) => {
     const now = new Date();
     const articleDate = new Date(date);
@@ -27,12 +27,29 @@ export default function LeftNewsPanel({ trendingArticles = [] }) {
           {/* Compact Header */}
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-gradient-to-r from-red-500 to-orange-500 rounded-md">
+              <div className="p-1.5 bg-linear-to-r from-red-500 to-orange-500 rounded-md">
                 <TrendingUp size={14} className="text-white" />
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm">ट्रेंडिंग न्यूज़</h3>
-                <p className="text-xs text-gray-500">सबसे ज्यादा पढ़े जा रहे</p>
+              <div className="flex items-start justify-between gap-22">
+                {/* Left */}
+                <div>
+                  <Link href="/trending">
+                    <h3 className="text-sm font-semibold text-gray-900 leading-tight">
+                      ट्रेंडिंग न्यूज़
+                    </h3>
+                  </Link>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    सबसे ज्यादा पढ़े जा रहे
+                  </p>
+                </div>
+
+                {/* Right */}
+                <Link
+                  href="/trending"
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 whitespace-nowrap"
+                >
+                  View All →
+                </Link>
               </div>
             </div>
           </div>
@@ -111,20 +128,22 @@ export default function LeftNewsPanel({ trendingArticles = [] }) {
       </Card>
 
       {/* Live TV - Compact */}
-      <Card className="bg-white border border-gray-200 shadow-sm">
-        <CardBody className="p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
-            <h3 className="font-bold text-gray-900 text-sm">लाइव टीवी</h3>
-          </div>
+      {liveVideoId && (
+        <Card className="bg-white border border-gray-200 shadow-sm">
+          <CardBody className="p-3">
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+              <h3 className="font-bold text-gray-900 text-sm">लाइव टीवी</h3>
+            </div>
 
-          <LiveStreamPlayer videoId="Cy2JyWkya5w" small={true} />
+            <LiveStreamPlayer videoId={liveVideoId} small={true} />
 
-          <div className="mt-2 text-center">
-            <p className="text-xs text-gray-600">24×7 लाइव कवरेज</p>
-          </div>
-        </CardBody>
-      </Card>
+            <div className="mt-2 text-center">
+              <p className="text-xs text-gray-600">24×7 लाइव कवरेज</p>
+            </div>
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }

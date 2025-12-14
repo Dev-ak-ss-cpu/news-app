@@ -87,7 +87,7 @@ const Weather = () => {
       setCity(weatherData.name);
 
     } catch (error) {
-      console.error('Error fetching weather data:', error);
+      // console.error('Error fetching weather data:', error);
       setLocationError(error.message || 'Failed to fetch weather data');
     } finally {
       setLoading(false);

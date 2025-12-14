@@ -468,14 +468,14 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                                         </p>
 
                                                         <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
+                                                            {/* <div className="flex items-center gap-3">
                                                                 <Avatar size="sm" className="bg-blue-100 text-blue-600" />
                                                                 <div>
                                                                     <p className="text-sm font-medium text-gray-900">
                                                                         {article.author || 'Staff Reporter'}
                                                                     </p>
                                                                 </div>
-                                                            </div>
+                                                            </div> */}
 
                                                             <div className="flex items-center gap-4">
                                                                 <Button size="sm" variant="light" color="primary">
@@ -625,7 +625,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                     </main>
 
                     {/* Sidebar - Increased size to match ArticleDetails */}
-                    <aside className="w-full lg:w-80 lg:shrink-0 space-y-6 lg:sticky lg:top-32 lg:self-start">
+                    <aside className="w-full lg:w-80 lg:shrink-0 space-y-6 lg:sticky lg:-top-72 lg:self-start">
                         {/* Related Articles from Same Category */}
                         <RelatedArticles
                             articles={sidebarData.relatedArticles || []}

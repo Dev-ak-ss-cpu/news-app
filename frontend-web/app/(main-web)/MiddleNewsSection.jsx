@@ -15,6 +15,7 @@ export default function MiddleNewsSection({
   topStory = [],
   trendingArticles = [],
   regularArticles = [],
+  liveVideoId = "",
   loadMore,
   hasMore,
   isLoadingMore,
@@ -384,8 +385,8 @@ export default function MiddleNewsSection({
           )}
         </div>
       ))}
-      
-      <LiveStreamPlayer videoId="rEKifG2XUZg" />
+
+      {liveVideoId && <LiveStreamPlayer videoId={liveVideoId} />}
 
       {/* REMAINING ARTICLES */}
       {remainingArticles.length > 0 && (
@@ -422,8 +423,22 @@ export default function MiddleNewsSection({
           ? Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="bg-white border rounded-xl p-6 animate-pulse"
-            ></div>
+              className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden"
+            >
+              <div className="p-6 text-center flex flex-col items-center justify-center min-h-[140px]">
+                {/* Icon placeholder */}
+                <div className="w-12 h-12 shimmer rounded-full mb-3"></div>
+
+                {/* Title placeholder */}
+                <div className="h-5 w-24 shimmer rounded mb-3"></div>
+
+                {/* Count and dot placeholder */}
+                <div className="flex items-center justify-center gap-2 mt-auto">
+                  <div className="w-2 h-2 shimmer rounded-full"></div>
+                  <div className="h-4 w-16 shimmer rounded"></div>
+                </div>
+              </div>
+            </div>
           ))
           : categories.map((c) => (
             <Link key={c._id} href={`/${c.slug || c._id}`}>

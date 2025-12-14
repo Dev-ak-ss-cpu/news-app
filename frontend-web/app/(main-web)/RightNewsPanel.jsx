@@ -1,5 +1,6 @@
 import { Card, CardBody } from "@heroui/react";
 import { Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { buildArticleUrl } from "@/app/utils/articleUrl";
@@ -8,6 +9,7 @@ import { genericGetApi } from "../Helper";
 import WeatherWidget from "./HomeWeather";
 
 export default function RightNewsPanel({ breakingNews = [] }) {
+  const router = useRouter();
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const stickyRef = useRef(null);
@@ -128,18 +130,40 @@ export default function RightNewsPanel({ breakingNews = [] }) {
       {/* Breaking News - Compact */}
       <Card className="bg-white border border-gray-200 shadow-sm">
         <CardBody className="p-3">
-          {/* Compact Header */}
-          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+
+          <div className="flex items-start justify-between mb-3 pb-2 border-b border-gray-100">
+            {/* Left section */}
+            <div className="flex items-start gap-2">
+              <div className="w-2 h-2 bg-red-600 rounded-full mt-1 animate-pulse" />
+
               <div>
-                <h3 className="font-bold text-gray-900 text-sm">ब्रेकिंग न्यूज़</h3>
-                <p className="text-xs text-gray-500">ताज़ा अपडेट</p>
+                <Link href="/breaking">
+                  <h3 className="text-sm font-semibold text-gray-900 leading-tight">
+                    ब्रेकिंग न्यूज़
+                  </h3>
+                </Link>
+
+                <p className="text-xs text-gray-500 mt-0.5">
+                  ताज़ा अपडेट
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-1 px-2 py-0.5 bg-red-50 rounded-full">
-              <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse"></div>
-              <span className="text-xs font-bold text-red-600">LIVE</span>
+
+            {/* Right section (stacked) */}
+            <div className="flex flex-col items-end gap-1">
+              {/* LIVE badge */}
+              <div className="flex items-center gap-1 px-3 py-0.5 bg-red-50 rounded-full">
+                <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse" />
+                <span className="text-xs font-bold text-red-600">LIVE</span>
+              </div>
+
+              {/* View All below LIVE */}
+              <Link
+                href="/breaking"
+                className="text-xs font-medium text-blue-600 hover:text-blue-700 whitespace-nowrap"
+              >
+                View All →
+              </Link>
             </div>
           </div>
 
@@ -205,7 +229,7 @@ export default function RightNewsPanel({ breakingNews = [] }) {
       </Card>
 
       <Card className="bg-white border border-gray-100 shadow-md rounded-2xl" style={{ minHeight: '35vh' }}>
-        <CardBody className="p-6">
+        <CardBody className="p-6 cursor-pointer" onClick={() => router.push('/weather')}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-xl text-gray-900">मौसम</h3>
             <div className="flex items-center gap-2 text-sm text-blue-600">

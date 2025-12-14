@@ -274,7 +274,7 @@ export default function TrendingArticlesPage({ initialArticles = [] }) {
                                                         {/* Footer */}
                                                         <div className="flex items-center justify-between flex-wrap gap-3">
                                                             {/* Author */}
-                                                            <div className="flex items-center gap-3">
+                                                            {/* <div className="flex items-center gap-3">
                                                                 <Avatar
                                                                     size="sm"
                                                                     name={article.author || "SR"}
@@ -286,7 +286,7 @@ export default function TrendingArticlesPage({ initialArticles = [] }) {
                                                                     </p>
                                                                     <p className="text-xs text-gray-500">News Desk</p>
                                                                 </div>
-                                                            </div>
+                                                            </div> */}
 
                                                             {/* Actions */}
                                                             <div className="flex items-center gap-4">

@@ -36,10 +36,11 @@ export default async function Page() {
     regularArticles: [],
     trendingArticles: [],
     pagination: null,
+    liveVideoId: "",
   };
 
   if (response.success) {
-    const { breakingNews, center, trending } = response.data;
+    const { breakingNews, center, trending, liveVideoId } = response.data;
 
     initialData = {
       breakingNews: formatArticleDates(breakingNews || []),
@@ -48,6 +49,7 @@ export default async function Page() {
       regularArticles: formatArticleDates(center?.regularArticles || []),
       trendingArticles: formatArticleDates(trending || []),
       pagination: center?.pagination || null,
+      liveVideoId: liveVideoId || "",
     };
   }
 

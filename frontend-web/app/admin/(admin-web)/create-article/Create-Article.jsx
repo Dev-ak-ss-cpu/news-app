@@ -211,7 +211,7 @@ export default function ArticleEditor() {
         ["clean"],
       ],
       clipboard: {
-        matchVisual: false,
+        matchVisual: true,
       },
     }),
     []
@@ -229,7 +229,7 @@ export default function ArticleEditor() {
     "background", // 👈 Added
     "script",
     "list",
-    "bullet",
+    // "bullet",
     "indent",
     "direction",
     "align",
@@ -725,7 +725,7 @@ export default function ArticleEditor() {
             <CardBody className="p-0">
               <div className="quill-editor" data-field="content">
                 <ReactQuill
-                  key={article.content} // Add key to force reset
+                    key={articleId || 'new-article'}  // Add key to force reset
                   theme="snow"
                   value={article.content}
                   onChange={(value) => handleInputChange("content", value)}
