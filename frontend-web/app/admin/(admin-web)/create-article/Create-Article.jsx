@@ -49,8 +49,12 @@ import {
   genericPutApi,
   genericPutApiWithFile,
   genericPostApiWithFile,
+  generateMetaTitle,
+  generateMetaDescription,
+  generateMetaTags,
 } from "@/app/Helper";
 import ArticlePreviewPopup from "./Article-Preview-Popup";
+import { getUserData } from "@/app/utils/auth";
 
 // Dynamically import ReactQuill to avoid SSR issues
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -100,6 +104,12 @@ export default function ArticleEditor() {
 
   const [newTag, setNewTag] = useState("");
 
+  // Track if meta fields were manually edited
+  const [metaManuallyEdited, setMetaManuallyEdited] = useState({
+    metaTitle: false,
+    metaDescription: false,
+  });
+
   // Validation errors state
   const [errors, setErrors] = useState({
     title: "",
@@ -142,7 +152,17 @@ export default function ArticleEditor() {
           metaDescription: articleData.metaDescription || "",
           publishDate: publishDateTime.toISOString().split("T")[0],
           publishTime: publishDateTime.toTimeString().slice(0, 5), // Extract time (HH:MM)
-          author: articleData.author || "Current User",
+          author: articleData.author || (() => {
+            const userData = getUserData();
+            return userData?.name || userData?.email?.split('@')[0] || "Admin User";
+          })(),
+        });
+
+        // Reset manual edit flags when loading existing article
+        // If metaTitle/metaDescription exist, consider them manually edited
+        setMetaManuallyEdited({
+          metaTitle: !!articleData.metaTitle,
+          metaDescription: !!articleData.metaDescription,
         });
 
         if (articleData.categoryPath && articleData.categoryPath.length > 0) {
@@ -189,6 +209,16 @@ export default function ArticleEditor() {
     if (articleId) {
       loadArticle();
     }
+    
+    // Fetch admin user data and set as author
+    const userData = getUserData();
+    if (userData) {
+      const authorName = userData.name || userData.email?.split('@')[0] || "Admin User";
+      setArticle(prev => ({
+        ...prev,
+        author: authorName
+      }));
+    }
   }, [articleId]); // This will run when articleId changes
 
 
@@ -211,7 +241,7 @@ export default function ArticleEditor() {
         ["clean"],
       ],
       clipboard: {
-        matchVisual: false,
+        matchVisual: true,
       },
     }),
     []
@@ -229,7 +259,7 @@ export default function ArticleEditor() {
     "background", // 👈 Added
     "script",
     "list",
-    "bullet",
+    // "bullet",
     "indent",
     "direction",
     "align",
@@ -289,7 +319,7 @@ export default function ArticleEditor() {
     setArticle((prev) => ({
       ...prev,
       category: finalCategoryId,
-    }));
+    }));  
 
     // Clear category error when category is selected
     if (errors.category) {
@@ -314,6 +344,34 @@ export default function ArticleEditor() {
 
   const handleInputChange = (field, value) => {
     setArticle({ ...article, [field]: value });
+    
+    // Auto-generate meta tags when title or excerpt changes
+    if (field === 'title' && value) {
+      const metaTitle = generateMetaTitle(value);
+      // Only auto-update if metaTitle hasn't been manually edited
+      if (!metaManuallyEdited.metaTitle) {
+        setArticle(prev => ({ ...prev, [field]: value, metaTitle }));
+      } else {
+        setArticle(prev => ({ ...prev, [field]: value }));
+      }
+    } else if (field === 'excerpt' && value) {
+      const metaDescription = generateMetaDescription(value, article.content);
+      // Only auto-update if metaDescription hasn't been manually edited
+      if (!metaManuallyEdited.metaDescription) {
+        setArticle(prev => ({ ...prev, [field]: value, metaDescription }));
+      } else {
+        setArticle(prev => ({ ...prev, [field]: value }));
+      }
+    } else if (field === 'content' && value && !article.excerpt) {
+      // If excerpt is empty, use content for meta description
+      const metaDescription = generateMetaDescription('', value);
+      if (!metaManuallyEdited.metaDescription) {
+        setArticle(prev => ({ ...prev, [field]: value, metaDescription }));
+      } else {
+        setArticle(prev => ({ ...prev, [field]: value }));
+      }
+    }
+    
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -536,6 +594,10 @@ export default function ArticleEditor() {
         if (!articleId) {
           const now = new Date();
           
+          // Get current user data for author
+          const userData = getUserData();
+          const authorName = userData?.name || userData?.email?.split('@')[0] || "Admin User";
+          
           // Reset all form state
           setArticle({
             title: "",
@@ -554,7 +616,7 @@ export default function ArticleEditor() {
             metaDescription: "",
             publishDate: now.toISOString().split("T")[0],
             publishTime: now.toTimeString().slice(0, 5),
-            author: "Current User",
+            author: authorName,
           });
           
           // Clear image and video URLs
@@ -568,6 +630,12 @@ export default function ArticleEditor() {
           // Reset category selection
           setCategoryPath([]);
           setCategoryLevels([categories]);
+          
+          // Reset manual edit flags
+          setMetaManuallyEdited({
+            metaTitle: false,
+            metaDescription: false,
+          });
           
           // Clear all errors
           setErrors({
@@ -725,7 +793,7 @@ export default function ArticleEditor() {
             <CardBody className="p-0">
               <div className="quill-editor" data-field="content">
                 <ReactQuill
-                  key={article.content} // Add key to force reset
+                    key={articleId || 'new-article'}  // Add key to force reset
                   theme="snow"
                   value={article.content}
                   onChange={(value) => handleInputChange("content", value)}
@@ -1130,7 +1198,10 @@ export default function ArticleEditor() {
                 <Input
                   label="Meta Title"
                   value={article.metaTitle}
-                  onChange={(e) => handleInputChange("metaTitle", e.target.value)}
+                  onChange={(e) => {
+                    setMetaManuallyEdited(prev => ({ ...prev, metaTitle: true }));
+                    handleInputChange("metaTitle", e.target.value);
+                  }}
                   variant="bordered"
                   isRequired
                   isInvalid={!!errors.metaTitle}
@@ -1141,9 +1212,10 @@ export default function ArticleEditor() {
                 <Textarea
                   label="Meta Description"
                   value={article.metaDescription}
-                  onChange={(e) =>
-                    handleInputChange("metaDescription", e.target.value)
-                  }
+                  onChange={(e) => {
+                    setMetaManuallyEdited(prev => ({ ...prev, metaDescription: true }));
+                    handleInputChange("metaDescription", e.target.value);
+                  }}
                   variant="bordered"
                   minRows={3}
                   isRequired
@@ -1166,6 +1238,8 @@ export default function ArticleEditor() {
                   value={article.author}
                   onChange={(e) => handleInputChange("author", e.target.value)}
                   variant="bordered"
+                  disabled
+                  className=""
                 // Remove isRequired, isInvalid, and errorMessage props
                 />
               </div>

@@ -11,10 +11,14 @@ import {
   Twitter,
   Instagram,
   Home,
+  Phone,
+  Mail,
+  MapPin
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { genericGetApi } from "../Helper";
+import GoogleTranslateDropdown from "./GoogleTranslate";
 
 // Helper function to build category path from root to current
 const buildCategoryPath = (category, allCategories, rootCategory) => {
@@ -40,24 +44,26 @@ const NestedCategoryItem = ({
   fetchChildren,
   childrenMap,
   loadingMap,
-  parentPath = [], // Add parentPath prop
-  allCategories = [], // Add allCategories to build paths
+  parentPath = [],
+  allCategories = [],
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef(null);
 
-  const hasChildren = (childrenMap[item._id] || []).length > 0;
-  const isLoading = loadingMap[item._id];
   const childItems = childrenMap[item._id] || [];
+  const hasChildren = childItems.length > 0;
+  const isLoading = loadingMap[item._id];
 
-  // Build full path for this category
   const categoryPath = [...parentPath, item.slug];
   const categoryUrl = `/${categoryPath.join('/')}`;
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setIsOpen(true);
     fetchChildren(item._id);
+    // Only open if not loading OR already has children
+    if (!isLoading || hasChildren) {
+      setIsOpen(true);
+    }
   };
 
   const handleMouseLeave = () => {
@@ -65,6 +71,13 @@ const NestedCategoryItem = ({
       setIsOpen(false);
     }, 150);
   };
+
+  // Open dropdown once loading completes and has children
+  useEffect(() => {
+    if (!isLoading && hasChildren) {
+      setIsOpen(true);
+    }
+  }, [isLoading, hasChildren]);
 
   return (
     <div
@@ -76,40 +89,44 @@ const NestedCategoryItem = ({
         <Link href={categoryUrl} className="flex-1 block">
           {item.name}
         </Link>
-        {(hasChildren || isLoading) && (
+        {/* Show chevron only if has children (not while loading) */}
+        {hasChildren && !isLoading && (
           <ChevronRight size={14} className="text-gray-400 ml-2" />
         )}
       </div>
 
-      <div
-        className={`
-          absolute left-full top-0 ml-0 border-l border-gray-100
-          bg-white shadow-xl rounded-r-lg min-w-[220px] z-[50]
-          transition-all duration-200 ease-in-out origin-top-left
-          ${isOpen
-            ? "opacity-100 translate-x-0 pointer-events-auto"
-            : "opacity-0 -translate-x-2 pointer-events-none"
-          }
-        `}
-        style={{ marginTop: "-1px" }}
-      >
-        {isLoading && <div></div>}
-
-        {childItems.map((child) => (
-          <NestedCategoryItem
-            key={child._id}
-            item={child}
-            fetchChildren={fetchChildren}
-            childrenMap={childrenMap}
-            loadingMap={loadingMap}
-            parentPath={categoryPath} // Pass current path as parent
-            allCategories={allCategories}
-          />
-        ))}
-      </div>
+      {/* Only show dropdown when fully loaded with children */}
+      {!isLoading && hasChildren && (
+        <div
+          className={`
+            absolute left-full top-0 ml-0 border-l border-gray-100
+            bg-white shadow-xl rounded-r-lg min-w-[220px] z-[50]
+            transition-all duration-200 ease-in-out origin-top-left
+            ${isOpen
+              ? "opacity-100 translate-x-0 pointer-events-auto"
+              : "opacity-0 -translate-x-2 pointer-events-none"
+            }
+          `}
+          style={{ marginTop: "-1px" }}
+        >
+          {childItems.map((child) => (
+            <NestedCategoryItem
+              key={child._id}
+              item={child}
+              fetchChildren={fetchChildren}
+              childrenMap={childrenMap}
+              loadingMap={loadingMap}
+              parentPath={categoryPath}
+              allCategories={allCategories}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
+
+
 
 const RootCategoryItem = ({
   category,
@@ -121,18 +138,18 @@ const RootCategoryItem = ({
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef(null);
 
-  // Root category URL
   const rootCategoryUrl = `/${category.slug}`;
-
-  // Safely check for children
   const childItems = childrenMap[category._id] || [];
   const hasChildren = childItems.length > 0;
   const isLoading = loadingMap[category._id];
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setIsOpen(true);
     fetchChildren(category._id);
+    // Only open if not loading OR already has children
+    if (!isLoading || hasChildren) {
+      setIsOpen(true);
+    }
   };
 
   const handleMouseLeave = () => {
@@ -140,6 +157,13 @@ const RootCategoryItem = ({
       setIsOpen(false);
     }, 150);
   };
+
+  // Auto-open dropdown once data is loaded
+  useEffect(() => {
+    if (!isLoading && hasChildren) {
+      setIsOpen(true);
+    }
+  }, [isLoading, hasChildren]);
 
   return (
     <div
@@ -158,8 +182,8 @@ const RootCategoryItem = ({
           `}
         >
           <span>{category.name}</span>
-          {/* Only show chevron if has children or loading */}
-          {(hasChildren || isLoading) && (
+          {/* Show chevron only when has children (not while loading) */}
+          {hasChildren && !isLoading && (
             <ChevronDown
               size={14}
               className={`ml-1 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
@@ -169,8 +193,8 @@ const RootCategoryItem = ({
         </div>
       </Link>
 
-      {/* Only render dropdown if has children or loading */}
-      {(hasChildren || isLoading) && (
+      {/* Only render dropdown when fully loaded and has children */}
+      {!isLoading && hasChildren && (
         <div
           className={`
             absolute left-0 top-full pt-2 
@@ -182,23 +206,19 @@ const RootCategoryItem = ({
           `}
         >
           <div className="bg-white border border-gray-100 shadow-xl rounded-lg min-w-[220px] overflow-visible">
-            {isLoading ? (
-              <div className="p-4 text-sm text-gray-500">Loading...</div>
-            ) : (
-              <div className="py-1">
-                {childItems.map((child) => (
-                  <NestedCategoryItem
-                    key={child._id}
-                    item={child}
-                    fetchChildren={fetchChildren}
-                    childrenMap={childrenMap}
-                    loadingMap={loadingMap}
-                    parentPath={[category.slug]}
-                    allCategories={allCategories}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="py-1">
+              {childItems.map((child) => (
+                <NestedCategoryItem
+                  key={child._id}
+                  item={child}
+                  fetchChildren={fetchChildren}
+                  childrenMap={childrenMap}
+                  loadingMap={loadingMap}
+                  parentPath={[category.slug]}
+                  allCategories={allCategories}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -207,11 +227,14 @@ const RootCategoryItem = ({
 };
 
 
-export default function Header() {
+export default function Header({ 
+  initialRootCategories = [], 
+  initialAllCategories = [] 
+}) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [categories, setCategories] = useState([]);
-  const [allCategories, setAllCategories] = useState([]); // Store all categories for path building
+  const [categories, setCategories] = useState(initialRootCategories);
+  const [allCategories, setAllCategories] = useState(initialAllCategories);
 
   const [categoryChildren, setCategoryChildren] = useState({});
   const [loadingChildren, setLoadingChildren] = useState({});
@@ -225,27 +248,29 @@ export default function Header() {
   ];
 
   useEffect(() => {
-    const fetchRoot = async () => {
-      try {
-        const res = await genericGetApi("/api/categories", {
-          parent: "null",
-          level: 0,
-        });
-        if (res.success) {
-          setCategories(res.data || []);
-        }
+    // Only fetch if initial data not provided (fallback for client-side navigation)
+    if (initialRootCategories.length === 0) {
+      const fetchRoot = async () => {
+        try {
+          const res = await genericGetApi("/api/categories", {
+            parent: "null",
+            level: 0,
+          });
+          if (res.success) {
+            setCategories(res.data || []);
+          }
 
-        // Fetch all categories for path building
-        const allRes = await genericGetApi("/api/categories");
-        if (allRes.success) {
-          setAllCategories(allRes.data || []);
+          const allRes = await genericGetApi("/api/categories");
+          if (allRes.success) {
+            setAllCategories(allRes.data || []);
+          }
+        } catch (e) {
+          console.error(e);
         }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchRoot();
-  }, []);
+      };
+      fetchRoot();
+    }
+  }, [initialRootCategories]);
 
   const fetchChildren = useCallback(
     async (id) => {
@@ -266,25 +291,53 @@ export default function Header() {
     [categoryChildren, loadingChildren]
   );
 
+  const contactInfo = [
+    { icon: Phone, text: "+91-9873135821", href: "tel:+919873135821" },
+    { icon: Mail, text: "nowjkkhabar@gmail.com", href: "mailto:nowjkkhabar@gmail.com" },
+  ];
+
   return (
-    <header className="bg-white sticky top-0 z-[99999] shadow-sm">
-      <div className="bg-linear-to-r from-gray-800 via-red-650 to-gray-700 text-white">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
+    <header className="bg-white sticky top-0 z-[99999]">
+      {/* Top Bar - Contact & Social Media Only */}
+      <div className="bg-[#0f2547] text-white border-b border-[#1a365d]">
+        <div className="container mx-auto px-4 h-10 flex items-center justify-between">
+          {/* Logo - Now in navigation bar */}
+          <div className="flex items-center gap-4 mt-6  ">
             <Link href="/" className="flex items-center gap-3">
               <Image
                 src="/logo.png"
                 alt="JK Khabar NOW DIGITAL"
-                width={140}
-                height={140}
+                width={145}
+                height={60}
                 className="object-contain"
                 priority
               />
             </Link>
           </div>
+          {/* Contact Information */}
+          <div className="hidden md:flex items-center space-x-6 text-sm">
+            {contactInfo.map((info, idx) => (
+              <a
+                key={idx}
+                href={info.href}
+                className="flex items-center gap-2 hover:text-[#f7fafc] transition-colors"
+              >
+                <info.icon size={14} className="text-[#718096]" />
+                <span>{info.text}</span>
+              </a>
+            ))}
+          </div>
 
-          <div className="hidden md:flex items-center space-x-3">
+          {/* Mobile Contact (simplified) */}
+          <div className="flex md:hidden items-center text-xs">
+            <a href="tel:+919876543210" className="flex items-center gap-1">
+              <Phone size={12} />
+              <span>कॉल करें</span>
+            </a>
+          </div>
+
+          {/* Social Media Links */}
+          <div className="flex items-center space-x-1">
             {socialLinks.map((social, i) => (
               <a
                 key={i}
@@ -292,29 +345,25 @@ export default function Header() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={social.name}
+                className="p-1.5 hover:bg-[#1a365d] rounded-md transition-colors"
               >
-                <Button
-                  isIconOnly
-                  variant="light"
-                  size="sm"
-                  className="text-white hover:bg-red-800 rounded-full"
-                >
-                  <social.Icon size={18} />
-                </Button>
+                <social.Icon size={16} className="text-white" />
               </a>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 h-14 flex justify-between items-center">
+      {/* Main Navigation Bar with Logo */}
+      <div className="bg-white border-b border-[#edf2f7]">
+        <div className="container mx-auto px-4 h-16 flex justify-center items-center">
+          {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-1 h-full">
             <Link href="/">
               <Button
                 variant="light"
                 startContent={<Home size={18} />}
-                className="text-gray-800 font-semibold hover:text-red-600 hover:bg-red-50 rounded-lg px-4"
+                className="text-[#1a202c] font-semibold hover:text-[#1a365d] hover:bg-[#f7fafc] rounded-lg px-4"
               >
                 होम
               </Button>
@@ -330,45 +379,10 @@ export default function Header() {
                 allCategories={allCategories}
               />
             ))}
+            {/* <div className="ml-4">
+              <GoogleTranslateDropdown />
+            </div> */}
           </nav>
-
-          {/* <div className="flex items-center space-x-2">
-            {!showSearch ? (
-              <Button
-                isIconOnly
-                variant="light"
-                onClick={() => setShowSearch(true)}
-              >
-                <Search size={20} />
-              </Button>
-            ) : (
-              <div className="flex items-center space-x-2 animate-in fade-in slide-in-from-right-4 duration-200">
-                <Input
-                  type="text"
-                  placeholder="खोजें..."
-                  size="sm"
-                  autoFocus
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64"
-                />
-                <Button size="sm" color="danger">
-                  खोजें
-                </Button>
-                <Button
-                  isIconOnly
-                  size="sm"
-                  variant="light"
-                  onClick={() => setShowSearch(false)}
-                >
-                  ✕
-                </Button>
-              </div>
-            )}
-            <Button isIconOnly variant="light" className="md:hidden">
-              <Menu size={20} />
-            </Button>
-          </div> */}
 
         </div>
       </div>

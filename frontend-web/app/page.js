@@ -1,5 +1,5 @@
 import HomePageClient from "./(main-web)/HomePageClient";
-import { fetchHomeArticles } from "./utils/serverApi";
+import { fetchHomeArticles, fetchRootCategories, fetchAllCategoriesFlat } from "./utils/serverApi";
 
 // Utility function to format dates consistently
 function formatDate(dateString) {
@@ -23,7 +23,11 @@ function formatArticleDates(articles) {
 
 export default async function Page() {
   // Fetch initial data on the server
-  const response = await fetchHomeArticles(1, 10);
+  const [response, rootCategoriesResponse, allCategoriesResponse] = await Promise.all([
+    fetchHomeArticles(1, 10),
+    fetchRootCategories(),
+    fetchAllCategoriesFlat(),
+  ]);
 
   let initialData = {
     breakingNews: [],
@@ -32,20 +36,36 @@ export default async function Page() {
     regularArticles: [],
     trendingArticles: [],
     pagination: null,
+    liveVideoId: "",
   };
 
   if (response.success) {
-    const { breakingNews, center, trending } = response.data;
+    const { breakingNews, center, trending, liveVideoId } = response.data;
 
     initialData = {
       breakingNews: formatArticleDates(breakingNews || []),
       featuredArticle: formatArticleDates(center?.featured || []),
-      topStory: formatArticleDates(center?.topStory || []), // Changed: treat as array
+      topStory: formatArticleDates(center?.topStory || []),
       regularArticles: formatArticleDates(center?.regularArticles || []),
       trendingArticles: formatArticleDates(trending || []),
       pagination: center?.pagination || null,
+      liveVideoId: liveVideoId || "",
     };
   }
 
-  return <HomePageClient initialData={initialData} />;
+  const rootCategories = rootCategoriesResponse.success 
+    ? rootCategoriesResponse.data || [] 
+    : [];
+
+  const allCategories = allCategoriesResponse.success 
+    ? allCategoriesResponse.data || [] 
+    : [];
+
+  return (
+    <HomePageClient 
+      initialData={initialData} 
+      rootCategories={rootCategories}
+      allCategories={allCategories}
+    />
+  );
 }

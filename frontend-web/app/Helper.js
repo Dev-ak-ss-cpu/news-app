@@ -143,3 +143,123 @@ export async function genericGetApiSSR(url, params = {}) {
     return { success: false, message: "Server fetch failed" };
   }
 }
+
+/**
+ * Strips HTML tags from content
+ * @param {string} html - HTML string
+ * @returns {string} - Plain text
+ */
+const stripHtmlTags = (html) => {
+  if (!html || typeof html !== 'string') {
+    return '';
+  }
+
+  // Remove HTML tags
+  let text = html.replace(/<[^>]*>/g, '');
+  
+  // Decode HTML entities
+  if (typeof document !== 'undefined') {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    text = textarea.value;
+  } else {
+    // Fallback for SSR
+    text = text
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+
+  // Clean up whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+
+  return text;
+};
+
+/**
+ * Generates SEO-optimized meta title from article title
+ * @param {string} title - Article title
+ * @param {number} maxLength - Maximum length (default: 60, recommended: 50-60)
+ * @returns {string} - Optimized meta title
+ */
+export const generateMetaTitle = (title, maxLength = 60) => {
+  if (!title || typeof title !== 'string') {
+    return '';
+  }
+
+  // Trim and remove extra spaces
+  let metaTitle = title.trim().replace(/\s+/g, ' ');
+
+  // If title is within limit, return as is
+  if (metaTitle.length <= maxLength) {
+    return metaTitle;
+  }
+
+  // Truncate at word boundary
+  const truncated = metaTitle.substring(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+
+  if (lastSpace > 0) {
+    return truncated.substring(0, lastSpace) + '...';
+  }
+
+  return truncated + '...';
+};
+
+/**
+ * Generates SEO-optimized meta description from excerpt or content
+ * @param {string} excerpt - Article excerpt (preferred)
+ * @param {string} content - Article content (fallback)
+ * @param {number} maxLength - Maximum length (default: 160, recommended: 150-160)
+ * @returns {string} - Optimized meta description
+ */
+export const generateMetaDescription = (excerpt, content = '', maxLength = 160) => {
+  let text = '';
+
+  // Prefer excerpt over content
+  if (excerpt && typeof excerpt === 'string' && excerpt.trim()) {
+    text = excerpt.trim();
+  } else if (content && typeof content === 'string' && content.trim()) {
+    // Strip HTML from content
+    text = stripHtmlTags(content);
+  }
+
+  if (!text) {
+    return '';
+  }
+
+  // Remove extra spaces
+  text = text.replace(/\s+/g, ' ');
+
+  // If text is within limit, return as is
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  // Truncate at word boundary
+  const truncated = text.substring(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+
+  if (lastSpace > 0) {
+    return truncated.substring(0, lastSpace) + '...';
+  }
+
+  return truncated + '...';
+};
+
+/**
+ * Auto-generates both meta title and description
+ * @param {string} title - Article title
+ * @param {string} excerpt - Article excerpt
+ * @param {string} content - Article content
+ * @returns {object} - Object with metaTitle and metaDescription
+ */
+export const generateMetaTags = (title, excerpt = '', content = '') => {
+  return {
+    metaTitle: generateMetaTitle(title),
+    metaDescription: generateMetaDescription(excerpt, content),
+  };
+};

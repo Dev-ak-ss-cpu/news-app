@@ -45,13 +45,13 @@ export default function ArticleContent({ article }) {
     const displayImage = articleData.featuredImage || articleData.image;
 
     // Advertisement component
-    const AdSection = ({ title, className = "" }) => (
-        <div className={`bg-linear-to-r from-gray-100 to-gray-200 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${className}`}>
-            <div className="text-gray-500 font-medium mb-2">📢 {title}</div>
-            <div className="text-sm text-gray-400">Advertisement</div>
-            <div className="mt-2 text-xs text-gray-400">300x250</div>
-        </div>
-    );
+    // const AdSection = ({ title, className = "" }) => (
+    //     <div className={`bg-linear-to-r from-gray-100 to-gray-200 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${className}`}>
+    //         <div className="text-gray-500 font-medium mb-2">📢 {title}</div>
+    //         <div className="text-sm text-gray-400">Advertisement</div>
+    //         <div className="mt-2 text-xs text-gray-400">300x250</div>
+    //     </div>
+    // );
 
     return (
         <div className="mx-auto px-4">
@@ -120,7 +120,7 @@ export default function ArticleContent({ article }) {
                     </div>
 
                     {/* Top Ad Section */}
-                    <AdSection title="Sponsored Content" className="mb-6" />
+                    {/* <AdSection title="Sponsored Content" className="mb-6" /> */}
 
                     {/* Featured Image */}
                     {displayImage && (
@@ -141,7 +141,7 @@ export default function ArticleContent({ article }) {
                     )}
 
                     {/* Middle Ad Section */}
-                    <AdSection title="Recommended For You" className="my-8" />
+                    {/* <AdSection title="Recommended For You" className="my-8" /> */}
 
                     {/* Article Content */}
                     <div className="prose prose-lg max-w-none text-gray-800 leading-relaxed">
@@ -170,7 +170,7 @@ export default function ArticleContent({ article }) {
                     )}
 
                     {/* Bottom Ad Section */}
-                    <AdSection title="You May Also Like" className="my-8" />
+                    {/* <AdSection title="You May Also Like" className="my-8" /> */}
 
                     {/* YouTube Video - Displayed before image if available */}
 
@@ -207,10 +207,6 @@ export default function ArticleContent({ article }) {
                                         <span>{articleData.views} व्यूज</span>
                                     </div>
                                 )}
-                            </div>
-                            <div className="flex items-center gap-1 text-orange-600">
-                                <Clock size={14} />
-                                <span>पढ़ने का समय: {articleData.readTime}</span>
                             </div>
                         </div>
                     </div>

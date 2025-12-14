@@ -8,6 +8,7 @@ export default function Layout({
   topStory = [],
   regularArticles = [],
   trendingArticles = [],
+  liveVideoId = "",
   loadMore,
   hasMore,
   isLoadingMore,
@@ -18,7 +19,7 @@ export default function Layout({
         <div className="flex gap-6 pt-6">
           {/* Left Fixed Panel */}
           <div className="hidden lg:block w-80 shrink-0">
-            <LeftNewsPanel trendingArticles={trendingArticles} />
+            <LeftNewsPanel trendingArticles={trendingArticles} liveVideoId={liveVideoId} />
           </div>
 
           {/* Middle Scrollable Section */}
@@ -27,6 +28,7 @@ export default function Layout({
               topStory={topStory}
               featuredArticle={featuredArticle}
               regularArticles={regularArticles}
+              liveVideoId={liveVideoId}
               loadMore={loadMore}
               hasMore={hasMore}
               isLoadingMore={isLoadingMore}

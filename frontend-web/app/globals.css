@@ -37,7 +37,6 @@
 }
 
 .shimmer {
-    animation: shimmer 1.5s infinite linear;
     background: linear-gradient(
         90deg,
         #f0f0f0 0%,
@@ -75,4 +74,26 @@
     100% {
         left: 100%;
     }
+}
+
+/* globals.css */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+body {
+  top: 0 !important;
+}
+
+iframe.skiptranslate {
+  display: none !important;
+}
+
+.goog-te-banner-frame,
+.goog-te-balloon-frame {
+  display: none !important;
 }

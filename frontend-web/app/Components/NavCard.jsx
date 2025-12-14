@@ -12,11 +12,9 @@ export default function NewsCard({
 }) {
   return (
     <Card
-      className={`bg-white border border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col rounded-xl overflow-hidden h-full ${
-        variant === "highlighted" ? "border-l-4 border-l-red-500" : ""
-      }`}
+      className={`bg-white border border-gray-200 hover:shadow-lg min-h-36 transition-all duration-300 cursor-pointer flex flex-col rounded-xl overflow-hidden h-full`}
     >
-      <CardBody className="p-4 flex-1 flex flex-col min-h-0 h-full">
+      <CardBody className=" flex-1 flex flex-col min-h-0 h-full">
         <div className="flex gap-3 flex-1 min-h-0 h-full">
           {/* Left: Content */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
@@ -39,18 +37,18 @@ export default function NewsCard({
             </div>
 
             <h3
-              className={`font-bold text-gray-900 mb-2 line-clamp-2 shrink-0 ${
-                variant === "highlighted" ? "text-base" : "text-sm"
+              className={`font-bold text-gray-900 mb-2 line-clamp-3 shrink-0 ${
+                variant === "highlighted" ? "text-md" : "text-sm"
               }`}
             >
               {title}
             </h3>
 
-            {excerpt && (
-              <p className="text-xs text-gray-600 mb-2 line-clamp-2 flex-1 min-h-0 leading-relaxed">
+            {/* {excerpt && (
+              <p className="text-xs text-gray-600 mb-2 line-clamp-1 flex-1 min-h-0 leading-relaxed">
                 {excerpt}
               </p>
-            )}
+            )} */}
 
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-auto shrink-0">

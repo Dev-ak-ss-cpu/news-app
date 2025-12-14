@@ -6,6 +6,7 @@ import { MongoDB } from "./utils/database.connection.js";
 import categoryRoutes from "./routes/category.routes.js";
 import articleRoutes from "./routes/article.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import settingsRoutes from "./routes/settings.routes.js";
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ MongoDB();
 app.use("/api/categories", categoryRoutes);
 app.use("/api/articles", articleRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}`);

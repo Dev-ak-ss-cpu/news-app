@@ -6,6 +6,7 @@ import { Input, Button } from "@heroui/react";
 import { genericPostApi } from "@/app/Helper";
 import { setUserData } from "@/app/utils/auth";
 import { addToast } from "@heroui/toast";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login({ setPageToggle }) {
     const [formData, setFormData] = useState({
@@ -13,12 +14,15 @@ export default function Login({ setPageToggle }) {
         password: "",
         adminSecret: "",
     });
-
+    const [showPassword, setShowPassword] = useState(false);
+    const [showAdminSecret, setShowAdminSecret] = useState(false);
+    const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     async function handleSubmit(e) {
         e.preventDefault();
         setIsLoading(true);
+        setError(""); // Clear previous errors
 
         try {
             const response = await genericPostApi("/api/auth/login", {
@@ -44,19 +48,13 @@ export default function Login({ setPageToggle }) {
                     window.location.href = "/";
                 }
             } else {
-                addToast({
-                    title: "Error",
-                    description: response?.message || "Login failed",
-                    variant: "error",
-                });
+                const errorMsg = response?.message || "Login failed";
+                setError(errorMsg);
             }
         } catch (error) {
             console.error("Login error:", error);
-            addToast({
-                title: "Error",
-                description: "Something went wrong. Please try again.",
-                variant: "error",
-            });
+            const errorMsg = error?.message || "Something went wrong. Please try again.";
+            setError(errorMsg);
         } finally {
             setIsLoading(false);
         }
@@ -99,7 +97,7 @@ export default function Login({ setPageToggle }) {
                         />
 
                         <Input
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             label="Password"
                             variant="bordered"
                             value={formData.password}
@@ -112,10 +110,23 @@ export default function Login({ setPageToggle }) {
                             placeholder="Enter your password"
                             className="w-full"
                             isRequired
+                            endContent={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="focus:outline-none"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="text-gray-500" size={18} />
+                                    ) : (
+                                        <Eye className="text-gray-500" size={18} />
+                                    )}
+                                </button>
+                            }
                         />
 
                         <Input
-                            type="password"
+                            type={showAdminSecret ? "text" : "password"}
                             label="Admin Secret"
                             variant="bordered"
                             value={formData.adminSecret}
@@ -129,7 +140,27 @@ export default function Login({ setPageToggle }) {
                             className="w-full"
                             isRequired
                             description="Required for admin login"
+                            endContent={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdminSecret((prev) => !prev)}
+                                    className="focus:outline-none"
+                                >
+                                    {showAdminSecret ? (
+                                        <EyeOff className="text-gray-500" size={18} />
+                                    ) : (
+                                        <Eye className="text-gray-500" size={18} />
+                                    )}
+                                </button>
+                            }
                         />
+
+                        {/* Error Display */}
+                        {error && (
+                            <div className="w-full p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-600 text-center">{error}</p>
+                            </div>
+                        )}
 
                         <Button
                             type="submit"

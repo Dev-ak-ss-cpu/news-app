@@ -153,7 +153,16 @@ export async function checkIfArticleSlug(slug, categoryPath = []) {
   }
 }
 
-export async function fetchCategoryData(pathSegments, page = 1, limit = 20, startDate = null, endDate = null, sortBy = 'latest') {
+export async function fetchCategoryData(
+  pathSegments, 
+  page = 1, 
+  limit = 20, 
+  startDate = null, 
+  endDate = null, 
+  sortBy = 'latest',
+  isBreaking = null,      // Add this
+  isTrending = null       // Add this
+) {
   try {
     const categoryPath = pathSegments.join("/");
     const params = { 
@@ -168,6 +177,14 @@ export async function fetchCategoryData(pathSegments, page = 1, limit = 20, star
     }
     if (endDate) {
       params.endDate = endDate;
+    }
+    
+    // Add breaking and trending filters if provided
+    if (isBreaking !== null && isBreaking !== undefined) {
+      params.isBreaking = isBreaking ? 'true' : 'false';
+    }
+    if (isTrending !== null && isTrending !== undefined) {
+      params.isTrending = isTrending ? 'true' : 'false';
     }
     
     const response = await genericGetApi(
@@ -232,6 +249,27 @@ export async function resolveRoute(pathSegments) {
       data: null,
       error: "Invalid path",
     };
+  }
+
+  // Handle special routes: trending and breaking
+  if (pathSegments.length === 1) {
+    const segment = pathSegments[0];
+    
+    if (segment === 'trending') {
+      return {
+        type: "trending",
+        data: null,
+        error: null,
+      };
+    }
+    
+    if (segment === 'breaking') {
+      return {
+        type: "breaking",
+        data: null,
+        error: null,
+      };
+    }
   }
 
   const lastSegment = pathSegments[pathSegments.length - 1];

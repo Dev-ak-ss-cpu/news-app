@@ -7,9 +7,9 @@ export async function serverGetApi(endpoint, params = {}) {
   try {
     const queryString = new URLSearchParams(params).toString();
     const url = `${BASE_API_URL}${endpoint}${queryString ? `?${queryString}` : ''}`;
-    
+
     const response = await fetch(url, {
-      next: { revalidate: 2 }, // Cache for 60 seconds (ISR)
+      next: { revalidate: 0 }, // Cache for 60 seconds (ISR)
       headers: {
         'Content-Type': 'application/json',
       },
@@ -50,14 +50,14 @@ export async function fetchRelatedArticles(categoryId, excludeArticleId = null, 
   };
 
   const response = await serverGetApi('/api/articles', params);
-  
+
   if (response.success && response.data?.newArticles) {
     let articles = response.data.newArticles;
-    
+
     if (excludeArticleId) {
       articles = articles.filter(article => article._id !== excludeArticleId);
     }
-    
+
     return {
       ...response,
       data: {
@@ -66,7 +66,7 @@ export async function fetchRelatedArticles(categoryId, excludeArticleId = null, 
       },
     };
   }
-  
+
   return response;
 }
 
@@ -77,7 +77,7 @@ export async function fetchRelatedCategories(currentCategoryId, limit = 10) {
   try {
     // First, get current category to find its parent
     const allCategoriesResponse = await serverGetApi('/api/categories');
-    
+
     if (!allCategoriesResponse.success || !allCategoriesResponse.data) {
       return { success: false, data: [] };
     }
@@ -90,7 +90,7 @@ export async function fetchRelatedCategories(currentCategoryId, limit = 10) {
       return { success: false, data: [] };
     }
 
-    const parentId = currentCat.parent 
+    const parentId = currentCat.parent
       ? (typeof currentCat.parent === 'object' ? currentCat.parent._id : currentCat.parent)
       : null;
 
@@ -129,3 +129,33 @@ export async function fetchHomeArticles(page = 1, limit = 10) {
     limit: limit.toString(),
   });
 }
+
+/**
+ * Fetch root categories for header/footer server-side
+ */
+export async function fetchRootCategories() {
+  return await serverGetApi('/api/categories', {
+    parent: 'null',
+    level: '0',
+  });
+}
+
+/**
+ * Fetch all categories for path building server-side
+ */
+export async function fetchAllCategoriesFlat() {
+  return await serverGetApi('/api/categories');
+}
+
+/**
+ * Fetch breaking news articles server-side
+ */
+export async function fetchBreakingArticles(limit = 10) {
+  return await serverGetApi('/api/articles', {
+    page: '1',
+    limit: limit.toString(),
+    isBreaking: 'true',
+    status: '1',
+  });
+}
+

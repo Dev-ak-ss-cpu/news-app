@@ -10,8 +10,13 @@ import { serverGetApi, fetchHomeArticles } from "../utils/serverApi";
 import { ToastProvider } from "@heroui/toast";
 import HomePageShimmer from "../Components/Shimmer/HomePageShimmer";
 import NewsGridShimmer from "../Components/Shimmer/NewsGridShimmer";
+import { LiveStreamPlayer } from "../Components/LiveStreamPlayer";
 
-export default function HomePageClient({ initialData }) {
+export default function HomePageClient({ 
+  initialData, 
+  rootCategories = [],
+  allCategories = []
+}) {
   const [breakingNews, setBreakingNews] = useState(initialData?.breakingNews || []);
   const [featuredArticle, setFeaturedArticle] = useState(initialData?.featuredArticle || null);
   const [topStory, setTopStory] = useState(initialData?.topStory || []);
@@ -21,6 +26,7 @@ export default function HomePageClient({ initialData }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [liveVideoId, setLiveVideoId] = useState(initialData?.liveVideoId || "");
 
   const fetchArticles = async (page = 1) => {
     try {
@@ -31,9 +37,13 @@ export default function HomePageClient({ initialData }) {
       const response = await fetchHomeArticles(page, 10);
 
       if (response.success) {
-        const { breakingNews: breaking, center, trending } = response.data;
+        const { breakingNews: breaking, center, trending, liveVideoId } = response.data;
 
         setBreakingNews(breaking || []);
+        
+        if (liveVideoId) {
+          setLiveVideoId(liveVideoId);
+        }
 
         if (center) {
           setFeaturedArticle(center.featured);
@@ -87,7 +97,10 @@ export default function HomePageClient({ initialData }) {
   return (
     <HeroUIProvider>
       <ToastProvider />
-      <Header />
+      <Header 
+        initialRootCategories={rootCategories}
+        initialAllCategories={allCategories}
+      />
       <main>
         {loading && currentPage === 1 ? (
           <HomePageShimmer />
@@ -95,7 +108,7 @@ export default function HomePageClient({ initialData }) {
           <>
             {featuredArticle?.length > 0 && (
               <section className="container mx-auto px-4 py-8">
-                <SectionHeader title="Featured News" />
+                <SectionHeader title="प्रमुख समाचार" />
                 {error ? (
                   <div className="text-center py-12">
                     <p className="text-red-600 mb-4">{error}</p>
@@ -116,6 +129,7 @@ export default function HomePageClient({ initialData }) {
                 topStory={topStory}
                 regularArticles={regularArticles}
                 trendingArticles={trendingArticles}
+                liveVideoId={liveVideoId}
                 loadMore={loadMoreArticles}
                 hasMore={pagination?.hasMore}
                 isLoadingMore={loading && currentPage > 1}
@@ -124,7 +138,7 @@ export default function HomePageClient({ initialData }) {
           </>
         )}
       </main>
-      <Footer />
+      <Footer rootCategories={rootCategories} />
     </HeroUIProvider>
   );
 }

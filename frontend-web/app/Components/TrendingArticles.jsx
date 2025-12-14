@@ -7,7 +7,8 @@ import { buildArticleUrl } from "@/app/utils/articleUrl";
 export default function TrendingArticles({ 
   articles = [], // Pre-fetched articles from server
   title = "ट्रेंडिंग अभी",
-  showLoading = false 
+  showLoading = false,
+  maxItems = 5  // Add this prop
 }) {
   const getTimeAgo = (date) => {
     const now = new Date();
@@ -23,6 +24,9 @@ export default function TrendingArticles({
     return `${diffInDays} दिन पहले`;
   };
 
+  // Limit articles to maxItems
+  const displayArticles = articles.slice(0, maxItems);
+
   return (
     <Card className="bg-white border border-gray-200 shadow-sm">
       <CardBody className="p-4">
@@ -35,9 +39,9 @@ export default function TrendingArticles({
           <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
-        ) : articles.length > 0 ? (
+        ) : displayArticles.length > 0 ? (
           <div className="space-y-3">
-            {articles.map((article, index) => (
+            {displayArticles.map((article, index) => (
               <Link key={article._id || index} href={buildArticleUrl(article)}>
                 <div className="flex items-start gap-3 hover:bg-gray-50 p-2 rounded transition-colors cursor-pointer">
                   <span className="flex-shrink-0 w-6 h-6 bg-red-100 text-red-600 rounded-full text-xs flex items-center justify-center font-bold">
