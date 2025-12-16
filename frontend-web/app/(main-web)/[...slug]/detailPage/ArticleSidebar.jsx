@@ -24,7 +24,7 @@ export default function ArticleSidebar({ article, sidebarData = {} }) {
     };
 
     return (
-        <div className="space-y-6 sticky top-24">
+        <div className="space-y-4 md:space-y-6 lg:sticky lg:top-24">
             {/* Share Options */}
             <Card className="bg-white border border-gray-200 shadow-sm">
                 <CardBody className="p-4">
@@ -32,12 +32,12 @@ export default function ArticleSidebar({ article, sidebarData = {} }) {
                         <Share2 size={20} className="text-blue-600" />
                         <h3 className="font-bold text-lg text-gray-900">शेयर करें</h3>
                     </div>
-                    <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-2 md:gap-3">
                         {['Facebook', 'Twitter', 'WhatsApp', 'LinkedIn'].map((platform) => (
                             <button
                                 key={platform}
                                 onClick={() => handleShare(platform)}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded text-sm font-medium transition-colors"
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 md:py-2 px-2 md:px-3 rounded text-xs md:text-sm font-medium transition-colors"
                             >
                                 {platform}
                             </button>

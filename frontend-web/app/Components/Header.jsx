@@ -4,6 +4,7 @@ import { Button, Input } from "@heroui/react";
 import {
   Search,
   Menu,
+  X,
   ChevronDown,
   ChevronRight,
   Facebook,
@@ -46,6 +47,8 @@ const NestedCategoryItem = ({
   loadingMap,
   parentPath = [],
   allCategories = [],
+  isMobile = false,
+  onLinkClick,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef(null);
@@ -58,6 +61,7 @@ const NestedCategoryItem = ({
   const categoryUrl = `/${categoryPath.join('/')}`;
 
   const handleMouseEnter = () => {
+    if (isMobile) return;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     fetchChildren(item._id);
     // Only open if not loading OR already has children
@@ -67,17 +71,31 @@ const NestedCategoryItem = ({
   };
 
   const handleMouseLeave = () => {
+    if (isMobile) return;
     timeoutRef.current = setTimeout(() => {
       setIsOpen(false);
     }, 150);
   };
 
-  // Open dropdown once loading completes and has children
+  const handleClick = () => {
+    if (isMobile && hasChildren) {
+      setIsOpen(!isOpen);
+      fetchChildren(item._id);
+    }
+  };
+
+  const handleLinkClick = () => {
+    if (isMobile && onLinkClick) {
+      onLinkClick();
+    }
+  };
+
+  // Open dropdown once loading completes and has children (desktop only)
   useEffect(() => {
-    if (!isLoading && hasChildren) {
+    if (!isMobile && !isLoading && hasChildren) {
       setIsOpen(true);
     }
-  }, [isLoading, hasChildren]);
+  }, [isLoading, hasChildren, isMobile]);
 
   return (
     <div
@@ -86,12 +104,21 @@ const NestedCategoryItem = ({
       onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-red-50 text-gray-800 select-none transition-colors">
-        <Link href={categoryUrl} className="flex-1 block">
+        <Link href={categoryUrl} className="flex-1 block" onClick={handleLinkClick}>
           {item.name}
         </Link>
         {/* Show chevron only if has children (not while loading) */}
         {hasChildren && !isLoading && (
-          <ChevronRight size={14} className="text-gray-400 ml-2" />
+          <button
+            onClick={handleClick}
+            className={`ml-2 ${isMobile ? 'p-1' : ''}`}
+            type="button"
+          >
+            <ChevronRight 
+              size={14} 
+              className={`text-gray-400 transition-transform ${isOpen && isMobile ? 'rotate-90' : ''}`} 
+            />
+          </button>
         )}
       </div>
 
@@ -99,15 +126,20 @@ const NestedCategoryItem = ({
       {!isLoading && hasChildren && (
         <div
           className={`
-            absolute left-full top-0 ml-0 border-l border-gray-100
+            ${isMobile 
+              ? 'relative left-0 top-0 ml-4 mt-1 border-l-2 border-gray-200' 
+              : 'absolute left-full top-0 ml-0 border-l border-gray-100'
+            }
             bg-white shadow-xl rounded-r-lg min-w-[220px] z-[50]
             transition-all duration-200 ease-in-out origin-top-left
             ${isOpen
               ? "opacity-100 translate-x-0 pointer-events-auto"
-              : "opacity-0 -translate-x-2 pointer-events-none"
+              : isMobile 
+                ? "hidden"
+                : "opacity-0 -translate-x-2 pointer-events-none"
             }
           `}
-          style={{ marginTop: "-1px" }}
+          style={!isMobile ? { marginTop: "-1px" } : {}}
         >
           {childItems.map((child) => (
             <NestedCategoryItem
@@ -118,6 +150,8 @@ const NestedCategoryItem = ({
               loadingMap={loadingMap}
               parentPath={categoryPath}
               allCategories={allCategories}
+              isMobile={isMobile}
+              onLinkClick={onLinkClick}
             />
           ))}
         </div>
@@ -134,6 +168,8 @@ const RootCategoryItem = ({
   childrenMap,
   loadingMap,
   allCategories = [],
+  isMobile = false,
+  onLinkClick,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef(null);
@@ -144,6 +180,7 @@ const RootCategoryItem = ({
   const isLoading = loadingMap[category._id];
 
   const handleMouseEnter = () => {
+    if (isMobile) return;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     fetchChildren(category._id);
     // Only open if not loading OR already has children
@@ -153,17 +190,80 @@ const RootCategoryItem = ({
   };
 
   const handleMouseLeave = () => {
+    if (isMobile) return;
     timeoutRef.current = setTimeout(() => {
       setIsOpen(false);
     }, 150);
   };
 
-  // Auto-open dropdown once data is loaded
+  const handleClick = () => {
+    if (isMobile && hasChildren) {
+      setIsOpen(!isOpen);
+      fetchChildren(category._id);
+    }
+  };
+
+  const handleLinkClick = () => {
+    if (isMobile && onLinkClick) {
+      onLinkClick();
+    }
+  };
+
+  // Auto-open dropdown once data is loaded (desktop only)
   useEffect(() => {
-    if (!isLoading && hasChildren) {
+    if (!isMobile && !isLoading && hasChildren) {
       setIsOpen(true);
     }
-  }, [isLoading, hasChildren]);
+  }, [isLoading, hasChildren, isMobile]);
+
+  if (isMobile) {
+    return (
+      <div className="w-full">
+        <div className="flex items-center justify-between">
+          <Link 
+            href={rootCategoryUrl} 
+            className="flex-1 block px-4 py-3 text-gray-800 hover:bg-red-50 hover:text-red-600 transition-colors font-semibold"
+            onClick={handleLinkClick}
+          >
+            {category.name}
+          </Link>
+          {hasChildren && !isLoading && (
+            <button
+              onClick={handleClick}
+              className="px-4 py-3 text-gray-600 hover:text-gray-800"
+              type="button"
+            >
+              <ChevronDown
+                size={14}
+                className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+          )}
+        </div>
+
+        {/* Mobile dropdown */}
+        {!isLoading && hasChildren && isOpen && (
+          <div className="ml-4 mt-1 border-l-2 border-gray-200">
+            <div className="bg-white">
+              {childItems.map((child) => (
+                <NestedCategoryItem
+                  key={child._id}
+                  item={child}
+                  fetchChildren={fetchChildren}
+                  childrenMap={childrenMap}
+                  loadingMap={loadingMap}
+                  parentPath={[category.slug]}
+                  allCategories={allCategories}
+                  isMobile={true}
+                  onLinkClick={onLinkClick}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -216,6 +316,7 @@ const RootCategoryItem = ({
                   loadingMap={loadingMap}
                   parentPath={[category.slug]}
                   allCategories={allCategories}
+                  isMobile={false}
                 />
               ))}
             </div>
@@ -235,6 +336,7 @@ export default function Header({
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState(initialRootCategories);
   const [allCategories, setAllCategories] = useState(initialAllCategories);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [categoryChildren, setCategoryChildren] = useState({});
   const [loadingChildren, setLoadingChildren] = useState({});
@@ -356,8 +458,8 @@ export default function Header({
 
       {/* Main Navigation Bar with Logo */}
       <div className="bg-white border-b border-[#edf2f7]">
-        <div className="container mx-auto px-4 h-16 flex justify-center items-center">
-          {/* Navigation */}
+        <div className="container mx-auto px-4 h-16 flex justify-center items-center relative">
+          {/* Navigation - Desktop Only */}
           <nav className="hidden md:flex items-center space-x-1 h-full">
             <Link href="/">
               <Button
@@ -377,6 +479,7 @@ export default function Header({
                 childrenMap={categoryChildren}
                 loadingMap={loadingChildren}
                 allCategories={allCategories}
+                isMobile={false}
               />
             ))}
             {/* <div className="ml-4">
@@ -384,7 +487,79 @@ export default function Header({
             </div> */}
           </nav>
 
+          {/* Mobile Menu Button - Mobile Only */}
+          <div className="flex md:hidden items-center gap-2 absolute right-4">
+            <Button
+              isIconOnly
+              variant="light"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-gray-700"
+              size="sm"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Search Bar - Mobile Only */}
+        {showSearch && (
+          <div className="md:hidden px-4 pb-3 border-t border-gray-200">
+            <Input
+              placeholder="खोजें..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+                }
+              }}
+              endContent={
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onClick={() => {
+                    if (searchQuery.trim()) {
+                      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
+                    }
+                  }}
+                >
+                  <Search size={16} />
+                </Button>
+              }
+              className="w-full"
+            />
+          </div>
+        )}
+
+        {/* Mobile Navigation Menu - Mobile Only */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 bg-white max-h-[calc(100vh-200px)] overflow-y-auto">
+            <nav className="py-2">
+              <Link 
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 px-4 py-3 text-gray-800 hover:bg-red-50 hover:text-red-600 transition-colors"
+              >
+                <Home size={18} />
+                <span className="font-semibold">होम</span>
+              </Link>
+
+              {categories.map((cat) => (
+                <RootCategoryItem
+                  key={cat._id}
+                  category={cat}
+                  fetchChildren={fetchChildren}
+                  childrenMap={categoryChildren}
+                  loadingMap={loadingChildren}
+                  allCategories={allCategories}
+                  isMobile={true}
+                  onLinkClick={() => setMobileMenuOpen(false)}
+                />
+              ))}
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

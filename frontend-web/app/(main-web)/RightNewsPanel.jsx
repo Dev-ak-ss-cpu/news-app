@@ -123,7 +123,7 @@ export default function RightNewsPanel({ breakingNews = [] }) {
   // ---------------------------
   return (
     <div ref={stickyRef} className={`
-        space-y-6 py-2 sticky top-30
+        space-y-6 py-2 lg:sticky lg:top-30
         ${isSticky ? "max-h-screen overflow-y-auto" : "overflow-visible"}
         no-scrollbar
       `}>
