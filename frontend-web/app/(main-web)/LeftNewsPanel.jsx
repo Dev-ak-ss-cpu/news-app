@@ -20,7 +20,7 @@ export default function LeftNewsPanel({ trendingArticles = [], liveVideoId = "" 
   };
 
   return (
-    <div className="space-y-4 sticky top-32">
+    <div className="space-y-4 lg:sticky lg:top-32">
       {/* Trending News - Compact Version */}
       <Card className="bg-white border border-gray-200 shadow-sm">
         <CardBody className="p-3">
