@@ -109,7 +109,7 @@ iframe.skiptranslate {
 }
 
 .animate-scroll {
-  animation: scroll-ticker 30s linear infinite;
+  animation: scroll-ticker 10s linear infinite;
 }
 
 .animate-scroll:hover {
