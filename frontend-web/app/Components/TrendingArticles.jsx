@@ -51,10 +51,18 @@ export default function TrendingArticles({
                     <h4 className="font-medium text-sm text-gray-900 leading-tight mb-1 line-clamp-2">
                       {article.title}
                     </h4>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      {article.category && (
-                        <span className="text-blue-600">{article.category.name}</span>
-                      )}
+                    <div className="flex items-center justify-between text-xs text-gray-500 flex-wrap gap-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {article.category && (
+                          <span className="text-blue-600">{article.category.name}</span>
+                        )}
+                        {article.author && (
+                          <>
+                            {article.category && <span>•</span>}
+                            <span>{article.author}</span>
+                          </>
+                        )}
+                      </div>
                       <span>{getTimeAgo(article.publishDate)}</span>
                     </div>
                   </div>

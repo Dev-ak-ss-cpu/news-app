@@ -685,23 +685,48 @@ export default function ArticleEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4 md:p-6">
       <style jsx global>{`
         .quill-editor {
           background: white;
         }
         .ql-container {
-          min-height: 400px;
-          font-size: 16px;
+          min-height: 300px;
+          font-size: 14px;
           font-family: inherit;
         }
+        @media (min-width: 640px) {
+          .ql-container {
+            min-height: 400px;
+            font-size: 16px;
+          }
+        }
         .ql-editor {
-          min-height: 400px;
+          min-height: 300px;
+        }
+        @media (min-width: 640px) {
+          .ql-editor {
+            min-height: 400px;
+          }
         }
         .ql-toolbar {
           border-top-left-radius: 0.5rem;
           border-top-right-radius: 0.5rem;
           background: white;
+          padding: 8px;
+        }
+        @media (max-width: 640px) {
+          .ql-toolbar {
+            padding: 4px;
+          }
+          .ql-toolbar .ql-formats {
+            margin-right: 4px;
+          }
+          .ql-toolbar button {
+            padding: 4px;
+            width: 28px;
+            height: 28px;
+          }
         }
         .ql-container {
           border-bottom-left-radius: 0.5rem;
@@ -710,23 +735,24 @@ export default function ArticleEditor() {
       `}</style>
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-black">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black">
             {articleId ? "Edit Article" : "Write New Article"}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             {articleId
               ? "Update your article content"
               : "Create and publish a new news article"}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <Button
             variant="bordered"
             startContent={<Eye size={18} />}
             onPress={onPreviewOpen}
-            className="border-gray-300"
+            className="border-gray-300 w-full sm:w-auto"
+            size="sm"
           >
             Preview
           </Button>
@@ -734,9 +760,10 @@ export default function ArticleEditor() {
             variant="bordered"
             startContent={<Save size={18} />}
             onPress={() => handleSave(0)}
-            className="border-gray-300"
+            className="border-gray-300 w-full sm:w-auto"
             isLoading={saving}
             isDisabled={saving}
+            size="sm"
           >
             Save Draft
           </Button>
@@ -744,42 +771,49 @@ export default function ArticleEditor() {
             color="primary"
             startContent={<Send size={18} />}
             onPress={() => handleSave(1)}
-            className="bg-black text-white hover:bg-gray-800"
+            className="bg-black text-white hover:bg-gray-800 w-full sm:w-auto"
             isLoading={saving}
             isDisabled={saving}
+            size="sm"
           >
             Publish Article
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Main Editor - 3/4 width */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-4 sm:space-y-6">
           {/* Title Card */}
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardBody className="p-6">
+            <CardBody className="p-3 sm:p-4 md:p-6">
               <div data-field="title">
-                <Input
+                <Textarea
                   placeholder="Enter article title..."
                   value={article.title}
                   onChange={(e) => handleInputChange("title", e.target.value)}
-                  className="text-2xl font-bold border-none p-0 focus:ring-0"
+                  className="border-none p-0 focus:ring-0 resize-none"
                   classNames={{
-                    input: "text-2xl font-bold",
+                    input: "text-lg sm:text-xl md:text-2xl font-bold",
                   }}
+                  minRows={1}
+                  maxRows={3}
                   isRequired
                   isInvalid={!!errors.title}
                   errorMessage={errors.title}
                 />
               </div>
-              <div data-field="excerpt" className="mt-4">
+              <div data-field="excerpt" className="mt-3 sm:mt-4">
                 <Textarea
                   placeholder="Brief excerpt or description..."
                   value={article.excerpt}
                   onChange={(e) => handleInputChange("excerpt", e.target.value)}
-                  className="border-none p-0 focus:ring-0 resize-none text-2xl"
+                  className="border-none p-0 focus:ring-0 resize-none"
+                  classNames={{
+                    input: "text-base sm:text-lg md:text-xl",
+                  }}
                   minRows={2}
+                  maxRows={4}
                   isRequired
                   isInvalid={!!errors.excerpt}
                   errorMessage={errors.excerpt}
@@ -812,13 +846,13 @@ export default function ArticleEditor() {
 
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             {/* Featured Image */}
-            <Card className="flex-1 xl:min-h-96 xl:h-160 bg-white border border-gray-200 shadow-sm">
-              <CardHeader>
-                <h3 className="text-lg font-semibold text-black">
+            <Card className="flex-1 bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="p-3 sm:p-4 md:p-6 pb-2 sm:pb-3 md:pb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-black">
                   Featured Image <span className="text-red-500">*</span>
                 </h3>
               </CardHeader>
-              <CardBody className="overflow-y-auto">
+              <CardBody className="overflow-y-auto p-3 sm:p-4 md:p-6">
                 <input
                   id="featured-image-input"
                   type="file"
@@ -830,7 +864,7 @@ export default function ArticleEditor() {
                 <div
                   data-field="featuredImage"
                   className={`border-2 ${errors.featuredImage ? "border-danger" : "border-zinc-300"
-                    } bg-zinc-50 border-dashed rounded-lg p-4 h-full flex flex-col justify-center items-center text-center transition relative cursor-pointer hover:border-gray-400`}
+                    } bg-zinc-50 border-dashed rounded-lg p-3 sm:p-4 min-h-[200px] sm:min-h-[250px] md:min-h-[300px] flex flex-col justify-center items-center text-center transition relative cursor-pointer hover:border-gray-400`}
                   onClick={() => {
                     if (!article.featuredImage) {
                       document.getElementById("featured-image-input").click();
@@ -847,7 +881,7 @@ export default function ArticleEditor() {
                       <img
                         src={article.featuredImage}
                         alt="Featured"
-                        className="w-full h-110 object-cover rounded-lg"
+                        className="w-full h-auto max-h-[300px] sm:max-h-[400px] md:max-h-[500px] lg:max-h-[600px] object-cover rounded-lg"
                       />
 
                       <button
@@ -867,11 +901,11 @@ export default function ArticleEditor() {
                     </div>
                   ) : (
                     <>
-                      <Upload className="mx-auto mb-2 text-gray-400" size={24} />
-                      <p className="text-gray-600">
+                      <Upload className="mx-auto mb-2 text-gray-400" size={20} />
+                      <p className="text-sm sm:text-base text-gray-600">
                         Drag & drop image here, or click to upload
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-xs sm:text-sm text-gray-500 mt-1">
                         Recommended size: 1200x600px
                       </p>
                     </>
@@ -884,13 +918,13 @@ export default function ArticleEditor() {
             </Card>
 
             {/* YouTube Video */}
-            <Card className="flex-1 xl:min-h-96 xl:h-160 bg-white border border-gray-200 shadow-sm">
-              <CardHeader>
-                <h3 className="text-lg font-semibold text-black">
+            <Card className="flex-1 bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="p-3 sm:p-4 md:p-6 pb-2 sm:pb-3 md:pb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-black">
                   YouTube Video
                 </h3>
               </CardHeader>
-              <CardBody className="overflow-y-auto">
+              <CardBody className="overflow-y-auto p-3 sm:p-4 md:p-6">
                 {article.youtubeVideo ? (
                   <div className="space-y-4">
                     {videoId && !isVideoPlaying ? (
@@ -934,12 +968,13 @@ export default function ArticleEditor() {
                       </p>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button
                         variant="bordered"
                         startContent={<Youtube size={16} />}
                         onPress={onVideoModalOpen}
-                        className="border-gray-300"
+                        className="border-gray-300 w-full sm:w-auto"
+                        size="sm"
                       >
                         Change Video
                       </Button>
@@ -950,6 +985,8 @@ export default function ArticleEditor() {
                           handleInputChange("youtubeVideo", "");
                           setIsVideoPlaying(false);
                         }}
+                        className="w-full sm:w-auto"
+                        size="sm"
                       >
                         Remove
                       </Button>
@@ -957,12 +994,12 @@ export default function ArticleEditor() {
                   </div>
                 ) : (
                   <div
-                    className="border-2 border-dashed bg-zinc-50 border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors h-full flex flex-col justify-center"
+                    className="border-2 border-dashed bg-zinc-50 border-gray-300 rounded-lg p-4 sm:p-6 text-center cursor-pointer hover:border-gray-400 transition-colors min-h-[200px] sm:min-h-[250px] md:min-h-[300px] flex flex-col justify-center"
                     onClick={onVideoModalOpen}
                   >
-                    <Youtube className="mx-auto text-red-600 mb-2" size={24} />
-                    <p className="text-gray-600">Add YouTube Video</p>
-                    <p className="text-sm text-gray-500">
+                    <Youtube className="mx-auto text-red-600 mb-2" size={20} />
+                    <p className="text-sm sm:text-base text-gray-600">Add YouTube Video</p>
+                    <p className="text-xs sm:text-sm text-gray-500">
                       Paste YouTube URL to embed video
                     </p>
                   </div>
@@ -973,14 +1010,14 @@ export default function ArticleEditor() {
         </div>
 
         {/* Sidebar - Settings - 1/4 width */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Categories */}
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-black">Categories</h3>
+            <CardHeader className="p-3 sm:p-4 md:p-6 pb-2 sm:pb-3 md:pb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-black">Categories</h3>
             </CardHeader>
-            <CardBody className="space-y-4">
-              <div data-field="publishDate" className="flex gap-3">
+            <CardBody className="space-y-3 sm:space-y-4 p-3 sm:p-4 md:p-6">
+              <div data-field="publishDate" className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Input
                   type="date"
                   label="Publish Date"
@@ -993,6 +1030,7 @@ export default function ArticleEditor() {
                   isInvalid={!!errors.publishDate}
                   errorMessage={errors.publishDate}
                   className="flex-1"
+                  size="sm"
                 />
                 <Input
                   type="time"
@@ -1004,6 +1042,7 @@ export default function ArticleEditor() {
                   variant="bordered"
                   isRequired
                   className="flex-1"
+                  size="sm"
                 />
               </div>
 
@@ -1039,6 +1078,7 @@ export default function ArticleEditor() {
                       isRequired={levelIndex === 0}
                       isInvalid={levelIndex === 0 && !!errors.category}
                       errorMessage={levelIndex === 0 ? errors.category : undefined}
+                      size="sm"
                       startContent={
                         levelIndex > 0 ? (
                           <MapPin size={16} className="text-gray-400" />
@@ -1062,12 +1102,12 @@ export default function ArticleEditor() {
 
           {/* Article Features */}
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-black">
+            <CardHeader className="p-3 sm:p-4 md:p-6 pb-2 sm:pb-3 md:pb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-black">
                 Article Features <span className="text-red-500">*</span>
               </h3>
             </CardHeader>
-            <CardBody className="space-y-4">
+            <CardBody className="space-y-3 sm:space-y-4 p-3 sm:p-4 md:p-6">
               {errors.articleFeatures && (
                 <p className="text-danger text-sm mb-2">{errors.articleFeatures}</p>
               )}
@@ -1150,10 +1190,10 @@ export default function ArticleEditor() {
 
           {/* Tags */}
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-black">Tags</h3>
+            <CardHeader className="p-3 sm:p-4 md:p-6 pb-2 sm:pb-3 md:pb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-black">Tags</h3>
             </CardHeader>
-            <CardBody className="space-y-4">
+            <CardBody className="space-y-3 sm:space-y-4 p-3 sm:p-4 md:p-6">
               <div className="flex gap-2">
                 <Input
                   placeholder="Add tag..."
@@ -1190,12 +1230,12 @@ export default function ArticleEditor() {
 
           {/* SEO Settings */}
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-black">SEO Settings</h3>
+            <CardHeader className="p-3 sm:p-4 md:p-6 pb-2 sm:pb-3 md:pb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-black">SEO Settings</h3>
             </CardHeader>
-            <CardBody className="space-y-4">
+            <CardBody className="space-y-3 sm:space-y-4 p-3 sm:p-4 md:p-6">
               <div data-field="metaTitle">
-                <Input
+                <Textarea
                   label="Meta Title"
                   value={article.metaTitle}
                   onChange={(e) => {
@@ -1203,9 +1243,12 @@ export default function ArticleEditor() {
                     handleInputChange("metaTitle", e.target.value);
                   }}
                   variant="bordered"
+                  minRows={1}
+                  maxRows={2}
                   isRequired
                   isInvalid={!!errors.metaTitle}
                   errorMessage={errors.metaTitle}
+                  size="sm"
                 />
               </div>
               <div data-field="metaDescription">
@@ -1217,10 +1260,12 @@ export default function ArticleEditor() {
                     handleInputChange("metaDescription", e.target.value);
                   }}
                   variant="bordered"
-                  minRows={3}
+                  minRows={2}
+                  maxRows={4}
                   isRequired
                   isInvalid={!!errors.metaDescription}
                   errorMessage={errors.metaDescription}
+                  size="sm"
                 />
               </div>
             </CardBody>
@@ -1228,19 +1273,17 @@ export default function ArticleEditor() {
 
           {/* Author */}
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader>
-              <h3 className="text-lg font-semibold text-black">Author</h3>
+            <CardHeader className="p-3 sm:p-4 md:p-6 pb-2 sm:pb-3 md:pb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-black">Author</h3>
             </CardHeader>
-            <CardBody>
+            <CardBody className="p-3 sm:p-4 md:p-6">
               <div data-field="author">
                 <Input
                   label="Author"
                   value={article.author}
                   onChange={(e) => handleInputChange("author", e.target.value)}
                   variant="bordered"
-                  disabled
-                  className=""
-                // Remove isRequired, isInvalid, and errorMessage props
+                  size="sm"
                 />
               </div>
             </CardBody>
@@ -1269,6 +1312,7 @@ export default function ArticleEditor() {
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
               variant="bordered"
+              size="sm"
               startContent={<Youtube size={16} className="text-gray-400" />}
             />
             <p className="text-sm text-gray-500">
@@ -1285,7 +1329,7 @@ export default function ArticleEditor() {
                   <img
                     src={getYouTubeThumbnail(youtubeUrl)}
                     alt="YouTube Preview"
-                    className="w-full h-60 object-cover rounded-lg"
+                    className="w-full h-40 sm:h-50 md:h-60 object-cover rounded-lg"
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="bg-red-600 rounded-full p-2">

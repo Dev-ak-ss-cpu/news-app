@@ -47,9 +47,17 @@ export default function RelatedArticles({
                     <h4 className="font-medium text-sm text-gray-900 leading-tight mb-1 line-clamp-2">
                       {article.title}
                     </h4>
-                    <span className="text-xs text-gray-500">
-                      {getTimeAgo(article.publishDate)}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-gray-500">
+                        {getTimeAgo(article.publishDate)}
+                      </span>
+                      {article.author && (
+                        <>
+                          <span className="text-xs text-gray-400">•</span>
+                          <span className="text-xs text-gray-500">{article.author}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Link>

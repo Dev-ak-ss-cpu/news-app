@@ -16,6 +16,7 @@ export default function NewsGrid({ articles = [] }) {
               category={article.category?.name}
               tags={article.tags}
               variant={"highlighted" }
+              author={article.author}
             />
           </Link>
         ))}

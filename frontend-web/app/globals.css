@@ -97,3 +97,21 @@ iframe.skiptranslate {
 .goog-te-balloon-frame {
   display: none !important;
 }
+
+/* Breaking News Ticker Animation */
+@keyframes scroll-ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll-ticker 30s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
