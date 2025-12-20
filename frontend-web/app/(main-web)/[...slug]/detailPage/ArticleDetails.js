@@ -24,14 +24,13 @@ export default function ArticleDetails({
         <div className="min-h-screen bg-gray-50">
             <ArticleHeader article={article} categoryPath={categoryPath} />
 
-            <main className="container mx-auto px-2 md:px-4 py-4 md:py-8">
-                <div className="flex flex-col lg:flex-row gap-4 md:gap-8">
+            <main className="container mx-auto px-4 py-8">
+                <div className="flex gap-8">
                     <div className="flex-1 min-w-0">
                         <ArticleContent article={article} />
                     </div>
 
-                    {/* Sidebar - Show below content on mobile, beside on desktop */}
-                    <div className="lg:block w-full lg:w-80 xl:w-108 lg:shrink-0">
+                    <div className="hidden lg:block w-80 xl:w-108  shrink-0">
                         <ArticleSidebar 
                             article={article}
                             sidebarData={sidebarData}

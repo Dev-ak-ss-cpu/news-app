@@ -9,6 +9,7 @@ export default function NewsCard({
   category = "Election",
   tags = [],
   variant = "default",
+  author = null,
 }) {
   return (
     <Card
@@ -34,6 +35,12 @@ export default function NewsCard({
                   </span>
                 </>
               )}
+              {/* {author && (
+                <>
+                  <span>•</span>
+                  <span className="text-gray-500">{author}</span>
+                </>
+              )} */}
             </div>
 
             <h3

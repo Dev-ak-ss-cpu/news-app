@@ -468,14 +468,14 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
                                                         </p>
 
                                                         <div className="flex items-center justify-between">
-                                                            {/* <div className="flex items-center gap-3">
-                                                                <Avatar size="sm" className="bg-blue-100 text-blue-600" />
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-gray-900">
-                                                                        {article.author || 'Staff Reporter'}
-                                                                    </p>
+                                                            {article.author && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Users size={14} className="text-gray-400" />
+                                                                    <span className="text-sm font-medium text-gray-700">
+                                                                        {article.author}
+                                                                    </span>
                                                                 </div>
-                                                            </div> */}
+                                                            )}
 
                                                             <div className="flex items-center gap-4">
                                                                 <Button size="sm" variant="light" color="primary">

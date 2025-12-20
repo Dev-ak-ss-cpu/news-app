@@ -14,11 +14,13 @@ import {
   Home,
   Phone,
   Mail,
-  MapPin
+  MapPin,
+  AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { genericGetApi } from "../Helper";
+import { buildArticleUrl } from "@/app/utils/articleUrl";
 import GoogleTranslateDropdown from "./GoogleTranslate";
 
 // Helper function to build category path from root to current
@@ -49,12 +51,20 @@ const NestedCategoryItem = ({
   allCategories = [],
   isMobile = false,
   onLinkClick,
+  mobileCategoryTree = {},
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef(null);
+  const [shouldOpenOnLoad, setShouldOpenOnLoad] = useState(false);
 
   const childItems = childrenMap[item._id] || [];
-  const hasChildren = childItems.length > 0;
+  
+  // For mobile, check if category has children from pre-built tree
+  // For desktop, check from fetched children
+  const hasChildren = isMobile
+    ? (childItems.length > 0 || (mobileCategoryTree && mobileCategoryTree[item._id]?.length > 0))
+    : childItems.length > 0;
+    
   const isLoading = loadingMap[item._id];
 
   const categoryPath = [...parentPath, item.slug];
@@ -63,11 +73,16 @@ const NestedCategoryItem = ({
   const handleMouseEnter = () => {
     if (isMobile) return;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    fetchChildren(item._id);
-    // Only open if not loading OR already has children
-    if (!isLoading || hasChildren) {
+    
+    // If already has children, open immediately
+    if (hasChildren) {
       setIsOpen(true);
+    } else {
+      // Mark that we should open when data loads
+      setShouldOpenOnLoad(true);
     }
+    
+    fetchChildren(item._id);
   };
 
   const handleMouseLeave = () => {
@@ -78,9 +93,10 @@ const NestedCategoryItem = ({
   };
 
   const handleClick = () => {
-    if (isMobile && hasChildren) {
+    if (isMobile) {
       setIsOpen(!isOpen);
-      fetchChildren(item._id);
+      // For mobile, fetchChildren will use pre-built tree
+      fetchChildren(item._id, true);
     }
   };
 
@@ -90,12 +106,13 @@ const NestedCategoryItem = ({
     }
   };
 
-  // Open dropdown once loading completes and has children (desktop only)
+  // Desktop: Open dropdown when data finishes loading after hover
   useEffect(() => {
-    if (!isMobile && !isLoading && hasChildren) {
+    if (!isMobile && !isLoading && hasChildren && shouldOpenOnLoad) {
       setIsOpen(true);
+      setShouldOpenOnLoad(false);
     }
-  }, [isLoading, hasChildren, isMobile]);
+  }, [isLoading, hasChildren, isMobile, shouldOpenOnLoad]);
 
   return (
     <div
@@ -107,53 +124,64 @@ const NestedCategoryItem = ({
         <Link href={categoryUrl} className="flex-1 block" onClick={handleLinkClick}>
           {item.name}
         </Link>
-        {/* Show chevron only if has children (not while loading) */}
-        {hasChildren && !isLoading && (
+        {/* Show chevron if has children */}
+        {hasChildren && (
           <button
             onClick={handleClick}
             className={`ml-2 ${isMobile ? 'p-1' : ''}`}
             type="button"
           >
-            <ChevronRight 
-              size={14} 
-              className={`text-gray-400 transition-transform ${isOpen && isMobile ? 'rotate-90' : ''}`} 
-            />
+            {isLoading ? (
+              <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <ChevronRight
+                size={14}
+                className={`text-gray-400 transition-transform ${isOpen && isMobile ? 'rotate-90' : ''}`}
+              />
+            )}
           </button>
         )}
       </div>
 
-      {/* Only show dropdown when fully loaded with children */}
-      {!isLoading && hasChildren && (
+      {/* Show dropdown when has children and is open */}
+      {hasChildren && isOpen && (
         <div
           className={`
-            ${isMobile 
-              ? 'relative left-0 top-0 ml-4 mt-1 border-l-2 border-gray-200' 
+            ${isMobile
+              ? 'relative left-0 top-0 ml-4 mt-1 border-l-2 border-gray-200'
               : 'absolute left-full top-0 ml-0 border-l border-gray-100'
             }
-            bg-white shadow-xl rounded-r-lg min-w-[220px] z-[50]
+            bg-white shadow-xs rounded-lg min-w-[220px] z-[50]
             transition-all duration-200 ease-in-out origin-top-left
             ${isOpen
               ? "opacity-100 translate-x-0 pointer-events-auto"
-              : isMobile 
+              : isMobile
                 ? "hidden"
                 : "opacity-0 -translate-x-2 pointer-events-none"
             }
           `}
           style={!isMobile ? { marginTop: "-1px" } : {}}
         >
-          {childItems.map((child) => (
-            <NestedCategoryItem
-              key={child._id}
-              item={child}
-              fetchChildren={fetchChildren}
-              childrenMap={childrenMap}
-              loadingMap={loadingMap}
-              parentPath={categoryPath}
-              allCategories={allCategories}
-              isMobile={isMobile}
-              onLinkClick={onLinkClick}
-            />
-          ))}
+          {isLoading ? (
+            <div className="px-4 py-2 flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            childItems.map((child) => (
+              <NestedCategoryItem
+                key={child._id}
+                item={child}
+                fetchChildren={fetchChildren}
+                childrenMap={childrenMap}
+                loadingMap={loadingMap}
+                parentPath={categoryPath}
+                allCategories={allCategories}
+                isMobile={isMobile}
+                onLinkClick={onLinkClick}
+                mobileCategoryTree={mobileCategoryTree}
+              />
+            ))
+          )}
         </div>
       )}
     </div>
@@ -170,36 +198,50 @@ const RootCategoryItem = ({
   allCategories = [],
   isMobile = false,
   onLinkClick,
+  mobileCategoryTree = {},
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const timeoutRef = useRef(null);
 
   const rootCategoryUrl = `/${category.slug}`;
   const childItems = childrenMap[category._id] || [];
-  const hasChildren = childItems.length > 0;
+  
+  // For mobile, check if category has children from pre-built tree
+  // For desktop, check from fetched children
+  const hasChildren = isMobile 
+    ? (childItems.length > 0 || (mobileCategoryTree && mobileCategoryTree[category._id]?.length > 0))
+    : childItems.length > 0;
+    
   const isLoading = loadingMap[category._id];
 
   const handleMouseEnter = () => {
     if (isMobile) return;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    fetchChildren(category._id);
-    // Only open if not loading OR already has children
-    if (!isLoading || hasChildren) {
+    
+    // If already has children, open immediately
+    if (hasChildren) {
       setIsOpen(true);
+    } else {
+      // Mark that we should open when data loads
+      setShouldOpenOnLoad(true);
     }
+    
+    fetchChildren(category._id);
   };
 
   const handleMouseLeave = () => {
     if (isMobile) return;
+    setShouldOpenOnLoad(false); // Cancel pending open
     timeoutRef.current = setTimeout(() => {
       setIsOpen(false);
     }, 150);
   };
 
   const handleClick = () => {
-    if (isMobile && hasChildren) {
+    if (isMobile) {
       setIsOpen(!isOpen);
-      fetchChildren(category._id);
+      // For mobile, fetchChildren will use pre-built tree
+      fetchChildren(category._id, true);
     }
   };
 
@@ -209,55 +251,70 @@ const RootCategoryItem = ({
     }
   };
 
-  // Auto-open dropdown once data is loaded (desktop only)
+  // Desktop: Track if we should open when data loads
+  const [shouldOpenOnLoad, setShouldOpenOnLoad] = useState(false);
+  
+  // Desktop: Open dropdown when data finishes loading after hover
   useEffect(() => {
-    if (!isMobile && !isLoading && hasChildren) {
+    if (!isMobile && !isLoading && hasChildren && shouldOpenOnLoad) {
       setIsOpen(true);
+      setShouldOpenOnLoad(false);
     }
-  }, [isLoading, hasChildren, isMobile]);
+  }, [isLoading, hasChildren, isMobile, shouldOpenOnLoad]);
 
   if (isMobile) {
     return (
       <div className="w-full">
         <div className="flex items-center justify-between">
-          <Link 
-            href={rootCategoryUrl} 
+          <Link
+            href={rootCategoryUrl}
             className="flex-1 block px-4 py-3 text-gray-800 hover:bg-red-50 hover:text-red-600 transition-colors font-semibold"
             onClick={handleLinkClick}
           >
             {category.name}
           </Link>
-          {hasChildren && !isLoading && (
+          {hasChildren && (
             <button
               onClick={handleClick}
               className="px-4 py-3 text-gray-600 hover:text-gray-800"
               type="button"
             >
-              <ChevronDown
-                size={14}
-                className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-              />
+              {isLoading ? (
+                <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                />
+              )}
             </button>
           )}
         </div>
 
         {/* Mobile dropdown */}
-        {!isLoading && hasChildren && isOpen && (
+        {hasChildren && isOpen && (
           <div className="ml-4 mt-1 border-l-2 border-gray-200">
             <div className="bg-white">
-              {childItems.map((child) => (
-                <NestedCategoryItem
-                  key={child._id}
-                  item={child}
-                  fetchChildren={fetchChildren}
-                  childrenMap={childrenMap}
-                  loadingMap={loadingMap}
-                  parentPath={[category.slug]}
-                  allCategories={allCategories}
-                  isMobile={true}
-                  onLinkClick={onLinkClick}
-                />
-              ))}
+              {isLoading ? (
+                <div className="px-4 py-2 flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                childItems.map((child) => (
+                  <NestedCategoryItem
+                    key={child._id}
+                    item={child}
+                    fetchChildren={fetchChildren}
+                    childrenMap={childrenMap}
+                    loadingMap={loadingMap}
+                    parentPath={[category.slug]}
+                    allCategories={allCategories}
+                    isMobile={true}
+                    onLinkClick={onLinkClick}
+                    mobileCategoryTree={mobileCategoryTree}
+                  />
+                ))
+              )}
             </div>
           </div>
         )}
@@ -328,18 +385,52 @@ const RootCategoryItem = ({
 };
 
 
-export default function Header({ 
-  initialRootCategories = [], 
-  initialAllCategories = [] 
+export default function Header({
+  initialRootCategories = [],
+  initialAllCategories = []
 }) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState(initialRootCategories);
   const [allCategories, setAllCategories] = useState(initialAllCategories);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [breakingNews, setBreakingNews] = useState([]);
 
   const [categoryChildren, setCategoryChildren] = useState({});
   const [loadingChildren, setLoadingChildren] = useState({});
+  
+  // Build category tree from allCategories for mobile (only for < md size)
+  const buildCategoryTree = useCallback(() => {
+    if (!allCategories || allCategories.length === 0) return {};
+    
+    const tree = {};
+    
+    // First, initialize all categories in the tree
+    allCategories.forEach(cat => {
+      tree[cat._id] = [];
+    });
+    
+    // Then, build parent-child relationships
+    allCategories.forEach(cat => {
+      if (cat.parent) {
+        // Handle both string ID and object parent
+        const parentId = typeof cat.parent === 'string' ? cat.parent : cat.parent._id;
+        if (tree[parentId]) {
+          tree[parentId].push(cat);
+        }
+      }
+    });
+    
+    // Sort children by name
+    Object.keys(tree).forEach(parentId => {
+      tree[parentId].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    
+    return tree;
+  }, [allCategories]);
+  
+  // Get mobile category tree
+  const mobileCategoryTree = buildCategoryTree();
 
   // Social media links
   const socialLinks = [
@@ -374,8 +465,35 @@ export default function Header({
     }
   }, [initialRootCategories]);
 
+  // Fetch breaking news for ticker
+  useEffect(() => {
+    const fetchBreakingNews = async () => {
+      try {
+        const response = await genericGetApi("/api/articles", {
+          page: "1",
+          limit: "5",
+          isBreaking: "true",
+          status: "1",
+        });
+        if (response.success && response.data?.newArticles) {
+          setBreakingNews(response.data.newArticles || []);
+        }
+      } catch (error) {
+        console.error("Error fetching breaking news:", error);
+      }
+    };
+    fetchBreakingNews();
+  }, []);
+
   const fetchChildren = useCallback(
-    async (id) => {
+    async (id, isMobile = false) => {
+      // For mobile, use pre-built tree instead of fetching
+      if (isMobile && mobileCategoryTree[id]) {
+        setCategoryChildren((prev) => ({ ...prev, [id]: mobileCategoryTree[id] || [] }));
+        return;
+      }
+      
+      // For desktop, fetch from API
       if (categoryChildren[id] || loadingChildren[id]) return;
 
       setLoadingChildren((prev) => ({ ...prev, [id]: true }));
@@ -390,8 +508,17 @@ export default function Header({
         setLoadingChildren((prev) => ({ ...prev, [id]: false }));
       }
     },
-    [categoryChildren, loadingChildren]
+    [categoryChildren, loadingChildren, mobileCategoryTree]
   );
+  
+  // Initialize mobile category tree on mount
+  useEffect(() => {
+    if (allCategories.length > 0) {
+      // Pre-populate category children for mobile from tree
+      const tree = buildCategoryTree();
+      setCategoryChildren(tree);
+    }
+  }, [allCategories, buildCategoryTree]);
 
   const contactInfo = [
     { icon: Phone, text: "+91-9873135821", href: "tel:+919873135821" },
@@ -404,7 +531,7 @@ export default function Header({
       <div className="bg-[#0f2547] text-white border-b border-[#1a365d]">
         <div className="container mx-auto px-4 h-10 flex items-center justify-between">
           {/* Logo - Now in navigation bar */}
-          <div className="flex items-center gap-4 mt-6  ">
+          <div className="flex items-center gap-4 mt-6 z-20 ">
             <Link href="/" className="flex items-center gap-3">
               <Image
                 src="/logo.png"
@@ -456,6 +583,47 @@ export default function Header({
         </div>
       </div>
 
+      {/* Breaking News Ticker - Desktop Only (Below Logo) */}
+      {breakingNews.length > 0 && (
+        <div className="hidden md:block bg-red-600 text-white border-b border-red-700">
+          <div className="container mx-auto max-w-316 px-4 py-2">
+            <div className="flex items-center gap-3 overflow-hidden">
+              
+              {/* Scrolling News Ticker */}
+              <div className="flex-1 overflow-hidden relative">
+                <div className="flex items-center gap-6 animate-scroll whitespace-nowrap">
+                  {breakingNews.map((news, index) => (
+                    <Link
+                      key={news._id || index}
+                      href={buildArticleUrl(news)}
+                      className="flex items-center gap-2 shrink-0 hover:text-yellow-200 transition-colors"
+                    >
+                      <span className="text-sm font-medium">
+                        {news.title}
+                      </span>
+                      <span className="text-xs opacity-75">•</span>
+                    </Link>
+                  ))}
+                  {/* Duplicate for seamless loop */}
+                  {breakingNews.map((news, index) => (
+                    <Link
+                      key={`dup-${news._id || index}`}
+                      href={buildArticleUrl(news)}
+                      className="flex items-center gap-2 shrink-0 hover:text-yellow-200 transition-colors"
+                    >
+                      <span className="text-sm font-medium">
+                        {news.title}
+                      </span>
+                      <span className="text-xs opacity-75">•</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Navigation Bar with Logo */}
       <div className="bg-white border-b border-[#edf2f7]">
         <div className="container mx-auto px-4 h-16 flex justify-center items-center relative">
@@ -487,56 +655,67 @@ export default function Header({
             </div> */}
           </nav>
 
-          {/* Mobile Menu Button - Mobile Only */}
-          <div className="flex md:hidden items-center gap-2 absolute right-4">
-            <Button
-              isIconOnly
-              variant="light"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-gray-700"
-              size="sm"
-            >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </Button>
+          {/* Mobile: Breaking News Ticker + Hamburger Menu */}
+          <div className="flex md:hidden items-center gap-2 absolute right-4 left-4">
+            {/* Breaking News Ticker - Mobile Only (Left of Hamburger) */}
+            {breakingNews.length > 0 && (
+              <div className="flex-1 min-w-0 overflow-hidden bg-red-600 text-white rounded-md px-2 py-1.5 mr-2">
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  
+                  {/* Scrolling News Ticker - Smaller Text on Mobile */}
+                  <div className="flex-1 overflow-hidden relative">
+                    <div className="flex items-center gap-2 animate-scroll whitespace-nowrap">
+                      {breakingNews.map((news, index) => (
+                        <Link
+                          key={news._id || index}
+                          href={buildArticleUrl(news)}
+                          className="flex items-center gap-1 shrink-0 hover:text-yellow-200 transition-colors"
+                        >
+                          <span className="text-[12px] font-medium leading-tight">
+                            {news.title}
+                          </span>
+                          <span className="text-[7px] opacity-75">•</span>
+                        </Link>
+                      ))}
+                      {/* Duplicate for seamless loop */}
+                      {breakingNews.map((news, index) => (
+                        <Link
+                          key={`dup-mobile-nav-${news._id || index}`}
+                          href={buildArticleUrl(news)}
+                          className="flex items-center gap-1 shrink-0 hover:text-yellow-200 transition-colors"
+                        >
+                          <span className="text-[9px] font-medium leading-tight">
+                            {news.title}
+                          </span>
+                          <span className="text-[7px] opacity-75">•</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Mobile Menu Button - Mobile Only */}
+            <div className="shrink-0">
+              <Button
+                isIconOnly
+                variant="light"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="text-gray-700"
+                size="sm"
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Mobile Search Bar - Mobile Only */}
-        {showSearch && (
-          <div className="md:hidden px-4 pb-3 border-t border-gray-200">
-            <Input
-              placeholder="खोजें..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && searchQuery.trim()) {
-                  window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
-                }
-              }}
-              endContent={
-                <Button
-                  isIconOnly
-                  variant="light"
-                  size="sm"
-                  onClick={() => {
-                    if (searchQuery.trim()) {
-                      window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
-                    }
-                  }}
-                >
-                  <Search size={16} />
-                </Button>
-              }
-              className="w-full"
-            />
-          </div>
-        )}
 
         {/* Mobile Navigation Menu - Mobile Only */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 bg-white max-h-[calc(100vh-200px)] overflow-y-auto">
             <nav className="py-2">
-              <Link 
+              <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-2 px-4 py-3 text-gray-800 hover:bg-red-50 hover:text-red-600 transition-colors"
@@ -555,6 +734,7 @@ export default function Header({
                   allCategories={allCategories}
                   isMobile={true}
                   onLinkClick={() => setMobileMenuOpen(false)}
+                  mobileCategoryTree={mobileCategoryTree}
                 />
               ))}
             </nav>

@@ -17,7 +17,8 @@ import {
     AlertCircle,
     Eye,
     Share2,
-    Landmark
+    Landmark,
+    Users
 } from "lucide-react";
 import { buildArticleUrl } from "@/app/utils/articleUrl";
 import { genericGetApi } from "@/app/Helper";
@@ -274,18 +275,14 @@ export default function BreakingArticlesPage({ initialArticles = [] }) {
                                                         {/* Footer */}
                                                         <div className="flex items-center justify-between flex-wrap gap-3">
                                                             {/* Author */}
-                                                            {/* <div className="flex items-center gap-3">
-                                                                <Avatar
-                                                                    size="sm"
-                                                                    name={article.author || "SR"}
-                                                                    className="bg-blue-100 text-blue-600"
-                                                                />
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-gray-900">
-                                                                        {article.author || "Staff Reporter"}
-                                                                    </p>
+                                                            {article.author && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <Users size={14} className="text-gray-400" />
+                                                                    <span className="text-sm font-medium text-gray-700">
+                                                                        {article.author}
+                                                                    </span>
                                                                 </div>
-                                                            </div> */}
+                                                            )}
 
                                                             {/* Actions */}
                                                             <div className="flex items-center gap-4">

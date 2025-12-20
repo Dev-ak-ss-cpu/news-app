@@ -337,6 +337,7 @@ export default function MiddleNewsSection({
         date={article.formattedDate || new Date(article.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
         category={article.category?.name}
         tags={article.tags}
+        author={article.author}
       />
     </Link>
   );
@@ -377,6 +378,7 @@ export default function MiddleNewsSection({
                       date={a.formattedDate || new Date(a.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
                       category={a.category?.name}
                       tags={a.tags}
+                      author={a.author}
                     />
                   </Link>
                 </div>
@@ -408,6 +410,7 @@ export default function MiddleNewsSection({
                       date={a.formattedDate || new Date(a.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
                       category={a.category?.name}
                       tags={a.tags}
+                      author={a.author}
                     />
                   </Link>
                 )}
