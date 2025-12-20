@@ -583,25 +583,25 @@ export default function Header({
         </div>
       </div>
 
-      {/* Breaking News Ticker - Below Logo */}
+      {/* Breaking News Ticker - Desktop Only (Below Logo) */}
       {breakingNews.length > 0 && (
-        <div className="bg-red-600 text-white border-b border-red-700">
-          <div className="container mx-auto max-w-316 px-4 md:px-4 py-2">
-            <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
-
+        <div className="hidden md:block bg-red-600 text-white border-b border-red-700">
+          <div className="container mx-auto max-w-316 px-4 py-2">
+            <div className="flex items-center gap-3 overflow-hidden">
+              
               {/* Scrolling News Ticker */}
               <div className="flex-1 overflow-hidden relative">
-                <div className="flex items-center gap-4 md:gap-6 animate-scroll whitespace-nowrap">
+                <div className="flex items-center gap-6 animate-scroll whitespace-nowrap">
                   {breakingNews.map((news, index) => (
                     <Link
                       key={news._id || index}
                       href={buildArticleUrl(news)}
                       className="flex items-center gap-2 shrink-0 hover:text-yellow-200 transition-colors"
                     >
-                      <span className="text-xs md:text-sm font-medium">
+                      <span className="text-sm font-medium">
                         {news.title}
                       </span>
-                      <span className="text-xs opacity-75 hidden md:inline">•</span>
+                      <span className="text-xs opacity-75">•</span>
                     </Link>
                   ))}
                   {/* Duplicate for seamless loop */}
@@ -611,10 +611,10 @@ export default function Header({
                       href={buildArticleUrl(news)}
                       className="flex items-center gap-2 shrink-0 hover:text-yellow-200 transition-colors"
                     >
-                      <span className="text-xs md:text-sm font-medium">
+                      <span className="text-sm font-medium">
                         {news.title}
                       </span>
-                      <span className="text-xs opacity-75 hidden md:inline">•</span>
+                      <span className="text-xs opacity-75">•</span>
                     </Link>
                   ))}
                 </div>
@@ -655,17 +655,59 @@ export default function Header({
             </div> */}
           </nav>
 
-          {/* Mobile Menu Button - Mobile Only */}
-          <div className="flex md:hidden items-center gap-2 absolute right-4">
-            <Button
-              isIconOnly
-              variant="light"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-gray-700"
-              size="sm"
-            >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </Button>
+          {/* Mobile: Breaking News Ticker + Hamburger Menu */}
+          <div className="flex md:hidden items-center gap-2 absolute right-4 left-4">
+            {/* Breaking News Ticker - Mobile Only (Left of Hamburger) */}
+            {breakingNews.length > 0 && (
+              <div className="flex-1 min-w-0 overflow-hidden bg-red-600 text-white rounded-md px-2 py-1.5 mr-2">
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  
+                  {/* Scrolling News Ticker - Smaller Text on Mobile */}
+                  <div className="flex-1 overflow-hidden relative">
+                    <div className="flex items-center gap-2 animate-scroll whitespace-nowrap">
+                      {breakingNews.map((news, index) => (
+                        <Link
+                          key={news._id || index}
+                          href={buildArticleUrl(news)}
+                          className="flex items-center gap-1 shrink-0 hover:text-yellow-200 transition-colors"
+                        >
+                          <span className="text-[12px] font-medium leading-tight">
+                            {news.title}
+                          </span>
+                          <span className="text-[7px] opacity-75">•</span>
+                        </Link>
+                      ))}
+                      {/* Duplicate for seamless loop */}
+                      {breakingNews.map((news, index) => (
+                        <Link
+                          key={`dup-mobile-nav-${news._id || index}`}
+                          href={buildArticleUrl(news)}
+                          className="flex items-center gap-1 shrink-0 hover:text-yellow-200 transition-colors"
+                        >
+                          <span className="text-[9px] font-medium leading-tight">
+                            {news.title}
+                          </span>
+                          <span className="text-[7px] opacity-75">•</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Mobile Menu Button - Mobile Only */}
+            <div className="shrink-0">
+              <Button
+                isIconOnly
+                variant="light"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="text-gray-700"
+                size="sm"
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </Button>
+            </div>
           </div>
         </div>
 
