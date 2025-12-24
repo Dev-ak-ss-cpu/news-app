@@ -14,13 +14,11 @@ import {
   Home,
   Phone,
   Mail,
-  MapPin,
-  AlertTriangle
+  MapPin
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { genericGetApi } from "../Helper";
-import { buildArticleUrl } from "@/app/utils/articleUrl";
 import GoogleTranslateDropdown from "./GoogleTranslate";
 
 // Helper function to build category path from root to current
@@ -394,7 +392,6 @@ export default function Header({
   const [categories, setCategories] = useState(initialRootCategories);
   const [allCategories, setAllCategories] = useState(initialAllCategories);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [breakingNews, setBreakingNews] = useState([]);
 
   const [categoryChildren, setCategoryChildren] = useState({});
   const [loadingChildren, setLoadingChildren] = useState({});
@@ -465,25 +462,6 @@ export default function Header({
     }
   }, [initialRootCategories]);
 
-  // Fetch breaking news for ticker
-  useEffect(() => {
-    const fetchBreakingNews = async () => {
-      try {
-        const response = await genericGetApi("/api/articles", {
-          page: "1",
-          limit: "5",
-          isBreaking: "true",
-          status: "1",
-        });
-        if (response.success && response.data?.newArticles) {
-          setBreakingNews(response.data.newArticles || []);
-        }
-      } catch (error) {
-        console.error("Error fetching breaking news:", error);
-      }
-    };
-    fetchBreakingNews();
-  }, []);
 
   const fetchChildren = useCallback(
     async (id, isMobile = false) => {
@@ -583,47 +561,6 @@ export default function Header({
         </div>
       </div>
 
-      {/* Breaking News Ticker - Desktop Only (Below Logo) */}
-      {breakingNews.length > 0 && (
-        <div className="hidden md:block bg-red-600 text-white border-b border-red-700">
-          <div className="container mx-auto max-w-316 px-4 py-2">
-            <div className="flex items-center gap-3 overflow-hidden">
-              
-              {/* Scrolling News Ticker */}
-              <div className="flex-1 overflow-hidden relative">
-                <div className="flex items-center gap-6 animate-scroll whitespace-nowrap">
-                  {breakingNews.map((news, index) => (
-                    <Link
-                      key={news._id || index}
-                      href={buildArticleUrl(news)}
-                      className="flex items-center gap-2 shrink-0 hover:text-yellow-200 transition-colors"
-                    >
-                      <span className="text-sm font-medium">
-                        {news.title}
-                      </span>
-                      <span className="text-xs opacity-75">•</span>
-                    </Link>
-                  ))}
-                  {/* Duplicate for seamless loop */}
-                  {breakingNews.map((news, index) => (
-                    <Link
-                      key={`dup-${news._id || index}`}
-                      href={buildArticleUrl(news)}
-                      className="flex items-center gap-2 shrink-0 hover:text-yellow-200 transition-colors"
-                    >
-                      <span className="text-sm font-medium">
-                        {news.title}
-                      </span>
-                      <span className="text-xs opacity-75">•</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Navigation Bar with Logo */}
       <div className="bg-white border-b border-[#edf2f7]">
         <div className="container mx-auto px-4 h-16 flex justify-center items-center relative">
@@ -655,59 +592,18 @@ export default function Header({
             </div> */}
           </nav>
 
-          {/* Mobile: Breaking News Ticker + Hamburger Menu */}
-          <div className="flex md:hidden items-center gap-2 absolute right-4 left-4">
-            {/* Breaking News Ticker - Mobile Only (Left of Hamburger) */}
-            {breakingNews.length > 0 && (
-              <div className="flex-1 min-w-0 overflow-hidden bg-red-600 text-white rounded-md px-2 py-1.5 mr-2">
-                <div className="flex items-center gap-1.5 overflow-hidden">
-                  
-                  {/* Scrolling News Ticker - Smaller Text on Mobile */}
-                  <div className="flex-1 overflow-hidden relative">
-                    <div className="flex items-center gap-2 animate-scroll whitespace-nowrap">
-                      {breakingNews.map((news, index) => (
-                        <Link
-                          key={news._id || index}
-                          href={buildArticleUrl(news)}
-                          className="flex items-center gap-1 shrink-0 hover:text-yellow-200 transition-colors"
-                        >
-                          <span className="text-[12px] font-medium leading-tight">
-                            {news.title}
-                          </span>
-                          <span className="text-[7px] opacity-75">•</span>
-                        </Link>
-                      ))}
-                      {/* Duplicate for seamless loop */}
-                      {breakingNews.map((news, index) => (
-                        <Link
-                          key={`dup-mobile-nav-${news._id || index}`}
-                          href={buildArticleUrl(news)}
-                          className="flex items-center gap-1 shrink-0 hover:text-yellow-200 transition-colors"
-                        >
-                          <span className="text-[9px] font-medium leading-tight">
-                            {news.title}
-                          </span>
-                          <span className="text-[7px] opacity-75">•</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Mobile Menu Button - Mobile Only */}
-            <div className="shrink-0">
-              <Button
-                isIconOnly
-                variant="light"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-gray-700"
-                size="sm"
-              >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </Button>
-            </div>
+          {/* Mobile: Hamburger Menu */}
+          <div className="flex md:hidden items-center gap-2 absolute right-4">
+            {/* Mobile Menu Button */}
+            <Button
+              isIconOnly
+              variant="light"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-gray-700"
+              size="sm"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </Button>
           </div>
         </div>
 

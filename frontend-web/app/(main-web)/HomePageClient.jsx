@@ -11,6 +11,7 @@ import { ToastProvider } from "@heroui/toast";
 import HomePageShimmer from "../Components/Shimmer/HomePageShimmer";
 import NewsGridShimmer from "../Components/Shimmer/NewsGridShimmer";
 import { LiveStreamPlayer } from "../Components/LiveStreamPlayer";
+import BreakingNewsTicker from "../Components/BreakingNewsTicker";
 
 export default function HomePageClient({ 
   initialData, 
@@ -106,6 +107,11 @@ export default function HomePageClient({
           <HomePageShimmer />
         ) : (
           <>
+            {/* Breaking News Ticker - Above Featured News */}
+            {breakingNews.length > 0 && (
+              <BreakingNewsTicker breakingNews={breakingNews} />
+            )}
+
             {featuredArticle?.length > 0 && (
               <section className="container mx-auto px-4 py-8">
                 <SectionHeader title="प्रमुख समाचार" />
