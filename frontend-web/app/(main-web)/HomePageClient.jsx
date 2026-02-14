@@ -5,7 +5,7 @@ import NewsGrid from "./NewsGrid";
 import Footer from "../Components/Footer";
 import Layout from "./HomeLayout";
 import { Button, HeroUIProvider } from "@heroui/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { serverGetApi, fetchHomeArticles } from "../utils/serverApi";
 import { ToastProvider } from "@heroui/toast";
 import HomePageShimmer from "../Components/Shimmer/HomePageShimmer";
@@ -80,20 +80,6 @@ export default function HomePageClient({
       fetchArticles(currentPage + 1);
     }
   };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.offsetHeight - 1000
-      ) {
-        loadMoreArticles();
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [pagination, loading, currentPage]);
 
   return (
     <HeroUIProvider>
