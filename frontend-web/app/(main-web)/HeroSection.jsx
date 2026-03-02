@@ -22,11 +22,9 @@ export default function HeroSection() {
                 <Card className="bg-white shadow-lg border border-gray-200">
                     <CardBody className="p-6">
                         <div className="flex items-center text-sm text-gray-600 mb-2">
-                            <span className="font-medium">{mainNews.location}</span>
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{mainNews.category}</span>
                             <span className="mx-2">•</span>
                             <span>{mainNews.date}</span>
-                            <span className="mx-2">•</span>
-                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{mainNews.category}</span>
                         </div>
 
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 leading-tight">
