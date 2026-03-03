@@ -20,12 +20,6 @@ export default function NewsCard({
           {/* Left: Content */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
             <div className="flex items-center text-xs text-gray-600 mb-2 flex-wrap gap-1.5 shrink-0">
-              {location && (
-                <>
-                  <span className="font-semibold">{location}</span>
-                  <span>•</span>
-                </>
-              )}
               <span>{date}</span>
               {category && (
                 <>
