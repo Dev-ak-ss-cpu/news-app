@@ -9,12 +9,12 @@ import { Home } from "lucide-react";
  * Props:
  * - categoryPath: array like [{ name, slug }, ...]
  * - currentLabel: string (current category or article title)
- * - homeLabel: string (default: "होम")
+ * - homeLabel: string (default: "Home")
  */
 export default function CategoryBreadcrumbs({
     categoryPath = [],
     currentLabel,
-    homeLabel = "होम",
+    homeLabel = "Home",
 }) {
     // Normalize categoryPath to safe array
     const safePath = Array.isArray(categoryPath) ? categoryPath : [];

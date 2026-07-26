@@ -69,7 +69,7 @@ export default function CategoryListing({ categoryData }) {
               className="flex items-center gap-1 text-gray-600 hover:text-red-600 transition-colors"
             >
               <Home size={16} />
-              <span>होम</span>
+              <span>Home</span>
             </Link>
             {categoryPath.map((cat, index) => {
               const pathToCategory = categoryPath

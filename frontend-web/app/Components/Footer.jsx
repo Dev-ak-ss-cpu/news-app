@@ -39,7 +39,7 @@ export default function Footer({ rootCategories = [] }) {
           <div>
             <h4 className="font-bold mb-4">जल्दी लिंक</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="/" className="hover:text-white">होम</Link></li>
+              <li><Link href="/" className="hover:text-white">Home</Link></li>
               <li><a href="/breaking" className="hover:text-white">ताज़ा खबर</a></li>
               <li><a href="/trending" className="hover:text-white">ट्रेंडिंग न्यूज़</a></li>
             </ul>

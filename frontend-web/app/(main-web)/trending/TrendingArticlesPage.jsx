@@ -109,7 +109,7 @@ export default function TrendingArticlesPage({ initialArticles = [] }) {
                         <BreadcrumbItem href="/">
                             <div className="flex items-center gap-1">
                                 <Home size={14} />
-                                <span>होम</span>
+                                <span>Home</span>
                             </div>
                         </BreadcrumbItem>
                         <BreadcrumbItem isCurrent>Trending News</BreadcrumbItem>

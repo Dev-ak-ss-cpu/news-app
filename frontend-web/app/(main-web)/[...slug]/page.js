@@ -78,7 +78,7 @@ export async function generateMetadata({ params }) {
             },
           ] : [
             {
-              url: `${siteUrl}/favicon.jpg`,
+              url: `${siteUrl}/logo.png`,
               width: 1200,
               height: 630,
               alt: 'JK Khabar NOW DIGITAL',
@@ -91,7 +91,7 @@ export async function generateMetadata({ params }) {
           card: 'summary_large_image',
           title: metaTitle,
           description: metaDescription,
-          images: featuredImageUrl ? [featuredImageUrl] : [`${siteUrl}/favicon.jpg`],
+          images: featuredImageUrl ? [featuredImageUrl] : [`${siteUrl}/logo.png`],
           creator: '@jkkhabarnow',
         },
         alternates: {
@@ -99,11 +99,52 @@ export async function generateMetadata({ params }) {
         },
       };
     }
+
+    // Generate unique metadata for category listing pages
+    if (routeResult.type === "category") {
+      const categoryData = routeResult.data;
+      const currentCategory = categoryData?.category?.current || {};
+      const categoryPath = Array.isArray(categoryData?.category?.path)
+        ? categoryData.category.path
+        : [];
+      const categoryName = typeof currentCategory?.name === 'string'
+        ? currentCategory.name
+        : 'News';
+
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      const pathSegments = categoryPath.map((cat) => cat?.slug).filter(Boolean);
+      const categoryUrl = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : '/';
+      const fullCategoryUrl = `${siteUrl}${categoryUrl}`;
+
+      const title = `${categoryName} News - Latest ${categoryName} Updates & Headlines`;
+      const description = `Read the latest ${categoryName} news, breaking stories, and in-depth coverage. Stay updated with real-time ${categoryName} news from JK Khabar NOW DIGITAL.`;
+
+      return {
+        title,
+        description,
+        openGraph: {
+          type: 'website',
+          locale: 'en_US',
+          url: fullCategoryUrl,
+          siteName: 'JK Khabar NOW DIGITAL',
+          title,
+          description,
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title,
+          description,
+        },
+        alternates: {
+          canonical: fullCategoryUrl,
+        },
+      };
+    }
   } catch (error) {
     console.error('Error generating metadata:', error);
   }
-  
-  // Return default metadata for non-article pages or on error
+
+  // Return default metadata for non-article, non-category pages or on error
   return {
     title: 'JK Khabar NOW DIGITAL - Latest News',
     description: 'Get the latest breaking news and updates',

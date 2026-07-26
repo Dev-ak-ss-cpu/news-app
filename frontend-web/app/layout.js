@@ -42,10 +42,10 @@ export const metadata = {
     description: 'Get the latest breaking news, trending stories, and in-depth coverage on politics, sports, entertainment, technology, and more.',
     images: [
       {
-        url: '/favicon.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'News Portal',
+        url: '/logo.png',
+        width: 1280,
+        height: 940,
+        alt: 'JK Khabar NOW DIGITAL',
       },
     ],
   },
@@ -53,7 +53,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'News Portal - Latest Breaking News & Updates',
     description: 'Get the latest breaking news, trending stories, and in-depth coverage.',
-    images: ['/favicon.jpg'],
+    images: ['/logo.png'],
     creator: '@newsportal',
   },
   robots: {
@@ -70,10 +70,10 @@ export const metadata = {
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.jpg', type: 'image/jpeg' },
+      { url: '/logo.png', type: 'image/png' },
     ],
     apple: [
-      { url: '/favicon.jpg', sizes: '180x180', type: 'image/jpeg' },
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   manifest: '/manifest.json',

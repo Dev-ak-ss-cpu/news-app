@@ -1,0 +1,21 @@
+{
+  "name": "JK Khabar NOW DIGITAL - Latest Breaking News & Updates",
+  "short_name": "JK Khabar",
+  "description": "Get the latest breaking news, trending stories, and in-depth coverage on politics, sports, entertainment, technology, and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

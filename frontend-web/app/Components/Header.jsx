@@ -572,7 +572,7 @@ export default function Header({
                 startContent={<Home size={18} />}
                 className="text-[#1a202c] font-semibold hover:text-[#1a365d] hover:bg-[#f7fafc] rounded-lg px-4"
               >
-                होम
+                Home
               </Button>
             </Link>
 
@@ -617,7 +617,7 @@ export default function Header({
                 className="flex items-center gap-2 px-4 py-3 text-gray-800 hover:bg-red-50 hover:text-red-600 transition-colors"
               >
                 <Home size={18} />
-                <span className="font-semibold">होम</span>
+                <span className="font-semibold">Home</span>
               </Link>
 
               {categories.map((cat) => (

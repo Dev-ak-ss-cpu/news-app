@@ -188,7 +188,7 @@ export default function CategoryListing({ categoryData, sidebarData = {} }) {
 
     // Build breadcrumb items with ONLY string values
     const breadcrumbItems = [
-        { href: "/", label: "होम", icon: Home }
+        { href: "/", label: "Home", icon: Home }
     ];
 
     if (Array.isArray(categoryPath) && categoryPath.length > 0) {
