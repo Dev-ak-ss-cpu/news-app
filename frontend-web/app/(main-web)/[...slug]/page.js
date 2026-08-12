@@ -1,11 +1,14 @@
+import { notFound } from 'next/navigation';
 import { resolveRoute } from './utils/routeUtils';
 import ArticleDetails from './detailPage/ArticleDetails';
 import ArticleWithCategory from './ArticleWithCategory';
-import { 
-  fetchTrendingArticles, 
-  fetchRelatedArticles, 
-  fetchRelatedCategories 
+import {
+  fetchTrendingArticles,
+  fetchRelatedArticles,
+  fetchRelatedCategories
 } from '@/app/utils/serverApi';
+import JsonLd from '@/app/Components/JsonLd';
+import { SITE_URL, resolveImageUrl, buildArticleUrl, buildCategoryUrl, humanizeSlug } from './utils/seoUtils';
 
 // Generate metadata for article pages (for social media sharing)
 export async function generateMetadata({ params }) {
@@ -17,43 +20,11 @@ export async function generateMetadata({ params }) {
     if (routeResult.type === "article") {
       const article = routeResult.data.article;
       const categoryPath = routeResult.data.categoryPath || [];
-      
-      // Get site URL from environment variable
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-      
-      // Build article URL from category path (slugs) and article slug
-      let articleUrl = '';
-      if (Array.isArray(categoryPath) && categoryPath.length > 0) {
-        articleUrl = `/${categoryPath.join('/')}/${article.slug}`;
-      } else {
-        articleUrl = `/${article.slug}`;
-      }
-      const fullArticleUrl = `${siteUrl}${articleUrl}`;
-      
-      // Get featured image - ensure it's an absolute URL
-      let featuredImageUrl = article.featuredImage || '';
-      
-      // Cloudinary URLs are already absolute, but handle other cases
-      if (featuredImageUrl) {
-        // If image is already absolute URL (Cloudinary, external), use as-is
-        if (!featuredImageUrl.startsWith('http://') && !featuredImageUrl.startsWith('https://')) {
-          // Relative path - need to make it absolute
-          if (featuredImageUrl.startsWith('/')) {
-            // Check if it's from API/uploads or public folder
-            if (featuredImageUrl.startsWith('/uploads/') || featuredImageUrl.startsWith('/images/') || featuredImageUrl.startsWith('/api/')) {
-              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-              featuredImageUrl = `${apiUrl}${featuredImageUrl}`;
-            } else {
-              featuredImageUrl = `${siteUrl}${featuredImageUrl}`;
-            }
-          } else {
-            // No leading slash - likely from API
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-            featuredImageUrl = `${apiUrl}/${featuredImageUrl}`;
-          }
-        }
-      }
-      
+
+      const siteUrl = SITE_URL;
+      const fullArticleUrl = buildArticleUrl(article, categoryPath);
+      const featuredImageUrl = resolveImageUrl(article.featuredImage);
+
       // Use metaTitle if available, otherwise use title
       const metaTitle = article.metaTitle || article.title || 'News Article';
       // Use metaDescription if available, otherwise use excerpt
@@ -69,29 +40,24 @@ export async function generateMetadata({ params }) {
           siteName: 'JK Khabar NOW DIGITAL',
           title: metaTitle,
           description: metaDescription,
-          images: featuredImageUrl ? [
+          images: [
             {
               url: featuredImageUrl,
               width: 1200,
               height: 630,
               alt: article.title || 'Article Image',
             },
-          ] : [
-            {
-              url: `${siteUrl}/logo.png`,
-              width: 1200,
-              height: 630,
-              alt: 'JK Khabar NOW DIGITAL',
-            },
           ],
           publishedTime: article.publishDate ? new Date(article.publishDate).toISOString() : undefined,
+          modifiedTime: article.updatedAt ? new Date(article.updatedAt).toISOString() : undefined,
           authors: article.author ? [article.author] : undefined,
+          section: article.category?.name || undefined,
         },
         twitter: {
           card: 'summary_large_image',
           title: metaTitle,
           description: metaDescription,
-          images: featuredImageUrl ? [featuredImageUrl] : [`${siteUrl}/logo.png`],
+          images: [featuredImageUrl],
           creator: '@jkkhabarnow',
         },
         alternates: {
@@ -111,7 +77,7 @@ export async function generateMetadata({ params }) {
         ? currentCategory.name
         : 'News';
 
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      const siteUrl = SITE_URL;
       const pathSegments = categoryPath.map((cat) => cat?.slug).filter(Boolean);
       const categoryUrl = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : '/';
       const fullCategoryUrl = `${siteUrl}${categoryUrl}`;
@@ -157,22 +123,10 @@ export default async function page({ params }) {
   // Resolve the route to determine if it's an article or category
   const routeResult = await resolveRoute(slug);
 
-  // Handle error case
+  // Handle error case - render the real not-found.js so invalid URLs return
+  // an HTTP 404 instead of a 200 "soft 404" that hurts crawl trust.
   if (routeResult.type === "error") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Page Not Found</h1>
-          <p className="text-gray-600 mb-4">{routeResult.error || "The page you're looking for doesn't exist."}</p>
-          <a 
-            href="/" 
-            className="text-blue-600 hover:text-blue-700 underline"
-          >
-            Go to Home
-          </a>
-        </div>
-      </div>
-    );
+    notFound();
   }
 
   // Show article detail page
@@ -194,18 +148,68 @@ export default async function page({ params }) {
       ),
     ]);
 
+    const fullArticleUrl = buildArticleUrl(article, urlCategoryPath);
+    const featuredImageUrl = resolveImageUrl(article.featuredImage);
+    const publishedIso = article.publishDate ? new Date(article.publishDate).toISOString() : undefined;
+
+    const newsArticleJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "NewsArticle",
+      "@id": `${fullArticleUrl}#article`,
+      mainEntityOfPage: { "@type": "WebPage", "@id": fullArticleUrl },
+      headline: (article.metaTitle || article.title || "").slice(0, 110),
+      description: article.metaDescription || article.excerpt || undefined,
+      image: [featuredImageUrl],
+      datePublished: publishedIso,
+      dateModified: article.updatedAt ? new Date(article.updatedAt).toISOString() : publishedIso,
+      author: article.author
+        ? { "@type": "Person", name: article.author }
+        : { "@type": "Organization", name: "JK Khabar NOW DIGITAL", url: SITE_URL },
+      publisher: {
+        "@type": "Organization",
+        name: "JK Khabar NOW DIGITAL",
+        logo: { "@type": "ImageObject", url: `${SITE_URL}/logo.png` },
+      },
+      articleSection: article.category?.name || undefined,
+      url: fullArticleUrl,
+    };
+
+    const breadcrumbJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+        ...urlCategoryPath.map((catSlug, index) => ({
+          "@type": "ListItem",
+          position: index + 2,
+          name: humanizeSlug(catSlug),
+          item: buildCategoryUrl(urlCategoryPath.slice(0, index + 1)),
+        })),
+        {
+          "@type": "ListItem",
+          position: urlCategoryPath.length + 2,
+          name: article.title,
+          item: fullArticleUrl,
+        },
+      ],
+    };
+
     return (
-      <ArticleDetails 
-        article={article} 
-        categoryPath={urlCategoryPath}
-        originalSlug={Array.isArray(slug) && slug.length > 0 ? slug : []}
-        // Pass pre-fetched sidebar data
-        sidebarData={{
-          trendingArticles: trendingArticles.success ? trendingArticles.data?.newArticles || [] : [],
-          relatedArticles: relatedArticles.success ? relatedArticles.data?.newArticles || [] : [],
-          relatedCategories: relatedCategories.success ? relatedCategories.data || [] : [],
-        }}
-      />
+      <>
+        <JsonLd data={newsArticleJsonLd} />
+        <JsonLd data={breadcrumbJsonLd} />
+        <ArticleDetails
+          article={article}
+          categoryPath={urlCategoryPath}
+          originalSlug={Array.isArray(slug) && slug.length > 0 ? slug : []}
+          // Pass pre-fetched sidebar data
+          sidebarData={{
+            trendingArticles: trendingArticles.success ? trendingArticles.data?.newArticles || [] : [],
+            relatedArticles: relatedArticles.success ? relatedArticles.data?.newArticles || [] : [],
+            relatedCategories: relatedCategories.success ? relatedCategories.data || [] : [],
+          }}
+        />
+      </>
     );
   }
 
@@ -222,16 +226,34 @@ export default async function page({ params }) {
       categoryId ? fetchRelatedCategories(categoryId, 10) : Promise.resolve({ success: false, data: [] }),
     ]);
 
+    const categoryPathObjs = Array.isArray(categoryData?.category?.path) ? categoryData.category.path : [];
+    const breadcrumbJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+        ...categoryPathObjs.map((cat, index) => ({
+          "@type": "ListItem",
+          position: index + 2,
+          name: cat.name,
+          item: buildCategoryUrl(categoryPathObjs.slice(0, index + 1).map((c) => c.slug)),
+        })),
+      ],
+    };
+
     return (
-      <ArticleWithCategory 
-        categoryData={categoryData}
-        // Pass pre-fetched sidebar data
-        sidebarData={{
-          trendingArticles: trendingArticles.success ? trendingArticles.data?.newArticles || [] : [],
-          relatedArticles: relatedArticles.success ? relatedArticles.data?.newArticles || [] : [],
-          relatedCategories: relatedCategories.success ? relatedCategories.data || [] : [],
-        }}
-      />
+      <>
+        <JsonLd data={breadcrumbJsonLd} />
+        <ArticleWithCategory
+          categoryData={categoryData}
+          // Pass pre-fetched sidebar data
+          sidebarData={{
+            trendingArticles: trendingArticles.success ? trendingArticles.data?.newArticles || [] : [],
+            relatedArticles: relatedArticles.success ? relatedArticles.data?.newArticles || [] : [],
+            relatedCategories: relatedCategories.success ? relatedCategories.data || [] : [],
+          }}
+        />
+      </>
     );
   }
 

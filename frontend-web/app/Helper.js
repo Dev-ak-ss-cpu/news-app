@@ -120,11 +120,62 @@ export const getYouTubeThumbnail = (url) => {
   return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : "";
 };
 
+// YouTube video IDs are always 11 chars of [A-Za-z0-9_-]
+const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
+
+const YOUTUBE_HOSTS = [
+  "youtube.com",
+  "m.youtube.com",
+  "music.youtube.com",
+  "youtube-nocookie.com",
+  "youtu.be",
+];
+
+// youtube.com/<prefix>/VIDEO_ID style paths
+const YOUTUBE_PATH_PREFIXES = ["live", "embed", "shorts", "v", "e"];
+
+/**
+ * Extracts the video ID from any YouTube link — watch, youtu.be, live,
+ * embed or shorts. Mirrors backend/src/utils/youtube.js so admin previews
+ * match what the server will actually save.
+ * @param {string} url - Full YouTube URL, or a bare video ID
+ * @returns {string|null} - The video ID, or null if not a YouTube link
+ */
 export const getYouTubeId = (url) => {
-  const regExp =
-    /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-  const match = url.match(regExp);
-  return match && match[7].length === 11 ? match[7] : null;
+  if (!url || typeof url !== "string") return null;
+
+  const value = url.trim();
+  if (!value) return null;
+
+  if (YOUTUBE_ID_PATTERN.test(value)) return value;
+
+  // Prepend protocol so inputs like "youtu.be/abc" still parse
+  const normalized = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    return null;
+  }
+
+  const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+  if (!YOUTUBE_HOSTS.includes(host)) return null;
+
+  if (host === "youtu.be") {
+    const [id] = parsed.pathname.split("/").filter(Boolean);
+    return YOUTUBE_ID_PATTERN.test(id || "") ? id : null;
+  }
+
+  const queryId = parsed.searchParams.get("v");
+  if (queryId && YOUTUBE_ID_PATTERN.test(queryId)) return queryId;
+
+  const [prefix, id] = parsed.pathname.split("/").filter(Boolean);
+  if (prefix && YOUTUBE_PATH_PREFIXES.includes(prefix.toLowerCase())) {
+    return YOUTUBE_ID_PATTERN.test(id || "") ? id : null;
+  }
+
+  return null;
 };
 
 export async function genericGetApiSSR(url, params = {}) {

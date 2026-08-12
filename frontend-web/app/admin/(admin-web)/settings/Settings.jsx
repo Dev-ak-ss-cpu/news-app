@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardHeader,
@@ -9,8 +9,8 @@ import {
   Spinner,
   addToast,
 } from '@heroui/react';
-import { Settings as SettingsIcon, Save, Video, Clock } from 'lucide-react';
-import { genericGetApi, genericPutApi } from '@/app/Helper';
+import { Settings as SettingsIcon, Save, Video, Clock, X, CheckCircle2 } from 'lucide-react';
+import { genericGetApi, genericPutApi, getYouTubeId } from '@/app/Helper';
 
 export default function Settings() {
   const [loading, setLoading] = useState(false);
@@ -18,8 +18,15 @@ export default function Settings() {
   const [settings, setSettings] = useState({
     breakingNewsExpiryHours: 24,
     trendingNewsExpiryHours: 48,
-    liveVideoId: "",
+    liveVideoUrl: "",
   });
+
+  // Parsed live so the admin sees whether the pasted link will work
+  const liveVideoId = useMemo(
+    () => getYouTubeId(settings.liveVideoUrl),
+    [settings.liveVideoUrl]
+  );
+  const hasInvalidUrl = Boolean(settings.liveVideoUrl.trim()) && !liveVideoId;
 
   useEffect(() => {
     fetchSettings();
@@ -33,7 +40,7 @@ export default function Settings() {
         setSettings({
           breakingNewsExpiryHours: response.data.breakingNewsExpiryHours || 24,
           trendingNewsExpiryHours: response.data.trendingNewsExpiryHours || 48,
-          liveVideoId: response.data.liveVideoId || "",
+          liveVideoUrl: response.data.liveVideoUrl || "",
         });
       }
     } catch (error) {
@@ -48,10 +55,28 @@ export default function Settings() {
   };
 
   const handleSave = async () => {
+    if (hasInvalidUrl) {
+      addToast({
+        title: "Invalid YouTube link",
+        description: "Paste a full video URL, e.g. https://www.youtube.com/watch?v=VIDEO_ID",
+      });
+      return;
+    }
+
     try {
       setSaving(true);
-      const response = await genericPutApi("/api/settings", settings);
+      const response = await genericPutApi("/api/settings", {
+        ...settings,
+        liveVideoUrl: settings.liveVideoUrl.trim(),
+      });
       if (response.success) {
+        // Use the normalised URL the server stored
+        if (response.data) {
+          setSettings((prev) => ({
+            ...prev,
+            liveVideoUrl: response.data.liveVideoUrl || "",
+          }));
+        }
         addToast({
           title: "Success",
           description: "Settings saved successfully",
@@ -143,28 +168,67 @@ export default function Settings() {
             </p>
           </div>
 
-          {/* Live Video ID */}
+          {/* Live Video URL */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Video size={16} className="text-gray-500" />
-              Live Video ID
+              Live Video URL
             </label>
             <Input
-              type="text"
-              value={settings.liveVideoId}
+              type="url"
+              value={settings.liveVideoUrl}
               onChange={(e) =>
                 setSettings({
                   ...settings,
-                  liveVideoId: e.target.value,
+                  liveVideoUrl: e.target.value,
                 })
               }
-              placeholder="Cy2JyWkya5w"
+              placeholder="https://www.youtube.com/watch?v=Cy2JyWkya5w"
               variant="bordered"
               className="w-full"
+              isInvalid={hasInvalidUrl}
+              errorMessage={
+                hasInvalidUrl ? "That doesn't look like a YouTube video link" : undefined
+              }
+              endContent={
+                settings.liveVideoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, liveVideoUrl: "" })}
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Clear live video URL"
+                  >
+                    <X size={16} />
+                  </button>
+                ) : null
+              }
             />
             <p className="text-xs text-gray-500">
-              Enter YouTube video ID (e.g., from URL: youtube.com/watch?v=<strong>VIDEO_ID</strong>)
+              Paste the full YouTube link — watch, live, youtu.be, shorts or embed URLs all work.
+              Leave it empty to hide the live player from the site.
             </p>
+
+            {liveVideoId && (
+              <div className="pt-2 space-y-2">
+                <p className="text-xs text-green-600 flex items-center gap-1.5">
+                  <CheckCircle2 size={14} />
+                  Video ID detected: <strong>{liveVideoId}</strong>
+                </p>
+                <div className="max-w-md overflow-hidden rounded-lg border border-gray-200">
+                  <iframe
+                    key={liveVideoId}
+                    src={`https://www.youtube.com/embed/${liveVideoId}`}
+                    title="Live stream preview"
+                    className="aspect-video w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  This is how the live player will appear on the site.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="pt-4">
@@ -172,6 +236,7 @@ export default function Settings() {
               color="primary"
               onPress={handleSave}
               isLoading={saving}
+              isDisabled={hasInvalidUrl}
               startContent={!saving && <Save size={16} />}
               className="min-w-[120px]"
             >

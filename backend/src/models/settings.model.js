@@ -12,7 +12,14 @@ const settingsSchema = new mongoose.Schema(
       default: 48, // Default 48 hours
       min: 1,
     },
+    // Extracted from liveVideoUrl — kept so the player can embed directly
     liveVideoId: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    // The full YouTube link the admin pasted, normalised to a watch URL
+    liveVideoUrl: {
       type: String,
       default: "",
       trim: true,

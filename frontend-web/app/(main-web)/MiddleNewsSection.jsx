@@ -1,24 +1,24 @@
 "use client";
 
-import { Card, CardBody, Button } from "@heroui/react";
-import { Play, Calendar, MapPin } from "lucide-react";
-import NewsCard from "../Components/NavCard";
 import CategoryCard from "../Components/Category";
-import HeroSection from "./HeroSection";
 import Link from "next/link";
-import { genericGetApi, getYouTubeId, getYouTubeThumbnail } from "../Helper";
-import { LiveStreamPlayer } from "../Components/LiveStreamPlayer";
+import { genericGetApi } from "../Helper";
+import SectionHeader from "./SectionHeader";
 import { useEffect, useState } from "react";
-import { buildArticleUrl } from "@/app/utils/articleUrl";
+import {
+  OverlayNewsCard,
+  CompactNewsCard,
+  hasVideo,
+  hasImage,
+} from "../Components/NewsCards";
+
+// A full-width story leads every run of this many cards.
+const WIDE_CARD_INTERVAL = 5;
 
 export default function MiddleNewsSection({
   topStory = [],
-  trendingArticles = [],
   regularArticles = [],
-  liveVideoId = "",
-  loadMore,
-  hasMore,
-  isLoadingMore,
+  title = "ताज़ा खबरें",
 }) {
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -91,377 +91,91 @@ export default function MiddleNewsSection({
     return configs[categoryName] || { color: "bg-gray-500", icon: "📰" };
   };
 
-  const usedArticleIds = new Set();
-  const articleSequence = [];
-
-  const addToSequence = (type, article, priority) => {
-    if (!article || usedArticleIds.has(article._id)) return;
-    articleSequence.push({ type, article, priority });
-    usedArticleIds.add(article._id);
-  };
-
-  const hasVideo = (a) => a?.youtubeVideo?.trim() !== "";
-  const hasImage = (a) => a?.featuredImage?.trim() !== "";
-
-  // TOP STORY LOGIC --------------
-  // if (topStory.length > 0) {
-  //   const first = topStory[0];
-  //   if (hasImage(first)) addToSequence("image", first, "topStory");
-  // }
-
-  // if (topStory.length > 0) {
-  //   const first = topStory[0];
-  //   if (hasVideo(first) && articleSequence.length === 1) {
-  //     addToSequence("video", first, "topStory");
-  //   } else if (topStory.length > 1) {
-  //     const second = topStory[1];
-  //     if (hasImage(second) && articleSequence.length === 1) {
-  //       addToSequence("image", second, "topStory");
-  //     }
-  //   }
-  // }
-
-  topStory.forEach((story) => {
-    if (!usedArticleIds.has(story._id)) {
-      if (hasVideo(story)) addToSequence("video", story, "topStory");
-      else if (hasImage(story)) addToSequence("image", story, "topStory");
-      else addToSequence("text", story, "topStory");
-    }
+  // Render in the exact order the API sent: top stories, then the paginated
+  // feed. "Load more" only appends, so nothing already on screen moves.
+  const seenIds = new Set();
+  const articles = [...topStory, ...regularArticles].filter((article) => {
+    if (!article) return false;
+    if (!article._id) return true;
+    if (seenIds.has(article._id)) return false;
+    seenIds.add(article._id);
+    return true;
   });
 
-  trendingArticles.forEach((a) => {
-    if (hasVideo(a)) addToSequence("video", a, "trending");
-    else if (hasImage(a)) addToSequence("image", a, "trending");
-    else addToSequence("text", a, "trending");
-  });
+  /**
+   * Card size is decided by absolute position, never by what else is loaded, so
+   * appending a page can't resize or reshuffle earlier cards. A wide card every
+   * fifth slot fills its row exactly (2 + 2 + 1 full-width), leaving no gaps.
+   */
+  const renderArticles = (items, offset = 0) => (
+    <div className="grid gap-5 sm:grid-cols-2">
+      {items.map((article, i) => {
+        const index = offset + i;
+        const isWide = index % WIDE_CARD_INTERVAL === 0;
 
-  // REGULAR ARTICLES SPLIT ------------
-  const regularImageArticles = [];
-  const regularVideoArticles = [];
-  const regularOnlyArticles = [];
-
-  regularArticles.forEach((a) => {
-    if (hasVideo(a)) regularVideoArticles.push(a);
-    else if (hasImage(a)) regularImageArticles.push(a);
-    else {
-      regularOnlyArticles.push(a);
-    }
-  });
-
-  const patternBlocks = [];
-  let imageIndex = 0,
-    videoIndex = 0,
-    articleIndex = 0,
-    sequenceIndex = 0;
-
-  const articlesPerBlock = 3;
-  const maxPatterns = 3;
-
-  // BLOCK GENERATION ------------
-  for (let i = 0; i < maxPatterns; i++) {
-    const block = {
-      imageArticle: null,
-      videoArticle: null,
-      textArticle: null,
-      articles: [],
-    };
-
-    // 1. IMAGE from sequence (topStory/trending)
-    if (!block.imageArticle && sequenceIndex < articleSequence.length) {
-      const seqItem = articleSequence[sequenceIndex];
-      if (seqItem.type === "image") {
-        block.imageArticle = seqItem.article;
-        usedArticleIds.add(seqItem.article._id);
-        sequenceIndex++;
-      }
-    }
-
-    // 2. VIDEO from sequence
-    if (!block.videoArticle && sequenceIndex < articleSequence.length) {
-      const seqItem = articleSequence[sequenceIndex];
-      if (seqItem.type === "video") {
-        block.videoArticle = seqItem.article;
-        usedArticleIds.add(seqItem.article._id);
-        sequenceIndex++;
-      }
-    }
-
-    // 3. TEXT from sequence (topStory/trending)
-    if (!block.textArticle && sequenceIndex < articleSequence.length) {
-      const seqItem = articleSequence[sequenceIndex];
-      if (seqItem.type === "text") {
-        block.textArticle = seqItem.article;
-        usedArticleIds.add(seqItem.article._id);
-        sequenceIndex++;
-      }
-    }
-
-    // 4. fallback image from regular articles
-    if (!block.imageArticle && imageIndex < regularImageArticles.length) {
-      const img = regularImageArticles[imageIndex++];
-      if (!usedArticleIds.has(img._id)) {
-        block.imageArticle = img;
-        usedArticleIds.add(img._id);
-      }
-    }
-
-    // 5. fallback video from regular articles
-    if (!block.videoArticle && videoIndex < regularVideoArticles.length) {
-      const vid = regularVideoArticles[videoIndex++];
-      if (!usedArticleIds.has(vid._id)) {
-        block.videoArticle = vid;
-        usedArticleIds.add(vid._id);
-      }
-    }
-
-    // fallback video
-    if (!block.videoArticle && videoIndex < regularVideoArticles.length) {
-      const vid = regularVideoArticles[videoIndex++];
-      if (!usedArticleIds.has(vid._id)) {
-        block.videoArticle = vid;
-        usedArticleIds.add(vid._id);
-      }
-    }
-
-    // REGULAR ARTICLES
-    let added = 0;
-    while (
-      added < articlesPerBlock &&
-      articleIndex < regularOnlyArticles.length
-    ) {
-      let art = regularOnlyArticles[articleIndex++];
-      if (!usedArticleIds.has(art._id)) {
-        block.articles.push(art);
-        usedArticleIds.add(art._id);
-        added++;
-      }
-    }
-
-    if (block.imageArticle || block.videoArticle || block.articles.length > 0) {
-      patternBlocks.push(block);
-    }
-  }
-
-  // REMAINING ARTICLES -----------
-  const remainingSequence = articleSequence.slice(sequenceIndex);
-
-  const remainingArticles = [
-    ...remainingSequence.map((i) => i.article),
-    ...regularImageArticles.slice(imageIndex),
-    ...regularVideoArticles.slice(videoIndex),
-    ...regularOnlyArticles.slice(articleIndex),
-  ].filter((a) => !usedArticleIds.has(a._id));
-
-  // IMAGE CARD (UNEVEN HEIGHT) -------------
-  const renderImageArticle = (article) => (
-    <Link key={article._id} href={buildArticleUrl(article)}>
-      <Card className="bg-white shadow-lg hover:shadow-xl transition rounded-xl overflow-hidden">
-        <div className="relative w-full aspect-[16/9] overflow-hidden">
-          <img
-            src={article.featuredImage}
-            className="w-full h-full object-cover"
-            alt={article.title}
-          />
-
-          {/* gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-
-          {/* text */}
-          <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-            <h2 className="font-bold text-sm sm:text-base line-clamp-1">
-              {article.title}
-            </h2>
-
-            {article.excerpt && (
-              <p className="text-xs sm:text-sm line-clamp-2 opacity-90">
-                {article.excerpt}
-              </p>
+        return (
+          <div
+            key={article._id || index}
+            className={isWide ? "sm:col-span-2" : ""}
+          >
+            {hasImage(article) || hasVideo(article) ? (
+              <OverlayNewsCard
+                article={article}
+                size={isWide ? "wide" : "small"}
+                priority={index === 0}
+              />
+            ) : (
+              <CompactNewsCard article={article} />
             )}
           </div>
-        </div>
-      </Card>
-    </Link>
-  );
-
-  // VIDEO CARD -----------------
-  const renderVideoArticle = (article) => {
-    const thumbnail = getYouTubeThumbnail(article.youtubeVideo);
-
-    return (
-      <Link key={article._id} href={buildArticleUrl(article)}>
-        <Card className="bg-white shadow-lg hover:shadow-xl transition rounded-xl overflow-hidden">
-          {/* SAME AS IMAGE: All content inside aspect-[16/9] */}
-          <div className="relative w-full aspect-[16/9] overflow-hidden">
-            {/* thumbnail */}
-            <img
-              src={thumbnail || article.featuredImage}
-              alt={article.title}
-              className="w-full h-full object-cover"
-            />
-
-            {/* dark gradient bottom */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-
-            {/* play button */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-              <div className="bg-red-600 p-3 rounded-full shadow">
-                <Play size={26} className="text-white" />
-              </div>
-            </div>
-
-            {/* TEXT INSIDE THUMBNAIL (same as image card) */}
-            <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-              <h3 className="font-semibold text-sm sm:text-base line-clamp-1">
-                {article.title}
-              </h3>
-
-              {article.excerpt && (
-                <p className="text-xs sm:text-sm line-clamp-2 opacity-90">
-                  {article.excerpt}
-                </p>
-              )}
-            </div>
-          </div>
-        </Card>
-      </Link>
-    );
-  };
-
-  const renderTextArticle = (article) => (
-    <Link key={article._id} href={buildArticleUrl(article)}>
-      <NewsCard
-        title={article.title}
-        excerpt={article.excerpt}
-        image={null}
-        location={article.category?.name}
-        date={article.formattedDate || new Date(article.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
-        category={article.category?.name}
-        tags={article.tags}
-        author={article.author}
-      />
-    </Link>
+        );
+      })}
+    </div>
   );
 
   return (
-    <div className="space-y-12 pb-8">
-      {/* PATTERN BLOCKS (IMAGE → VIDEO → ARTICLES) */}
-      {patternBlocks.map((block, idx) => (
-        <div key={idx} className="space-y-8">
-          {block.imageArticle && (
-            <div className="break-inside-avoid">
-              {renderImageArticle(block.imageArticle)}
-            </div>
-          )}
-
-          {block.videoArticle && (
-            <div className="break-inside-avoid">
-              {renderVideoArticle(block.videoArticle)}
-            </div>
-          )}
-
-          {block.textArticle && (
-            <div className="break-inside-avoid">
-              {renderTextArticle(block.textArticle)}
-            </div>
-          )}
-
-          {block.articles.length > 0 && (
-            <div className="columns-1 md:columns-1 lg:columns-2 gap-6 space-y-6">
-              {block.articles.map((a, i) => (
-                <div key={i} className="break-inside-avoid">
-                  <Link href={buildArticleUrl(a)}>
-                    <NewsCard
-                      title={a.title}
-                      excerpt={a.excerpt}
-                      image={a.featuredImage}
-                      location={a.category?.name}
-                      date={a.formattedDate || new Date(a.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
-                      category={a.category?.name}
-                      tags={a.tags}
-                      author={a.author}
-                    />
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {liveVideoId && <LiveStreamPlayer videoId={liveVideoId} />}
-
-      {/* REMAINING ARTICLES */}
-      {remainingArticles.length > 0 && (
-        <div className="space-y-6">
-          <div className="columns-1 md:columns-1 lg:columns-2 gap-6 space-y-6">
-            {remainingArticles.map((a, i) => (
-              <div key={i} className="break-inside-avoid">
-                {hasVideo(a) ? (
-                  renderVideoArticle(a)
-                ) : hasImage(a) ? (
-                  renderImageArticle(a)
-                ) : (
-                  <Link href={buildArticleUrl(a)}>
-                    <NewsCard
-                      title={a.title}
-                      excerpt={a.excerpt}
-                      image={a.featuredImage}
-                      location={a.category?.name}
-                      date={a.formattedDate || new Date(a.publishDate).toLocaleDateString('en-US', { year: 'numeric', month: 'numeric', day: 'numeric' })}
-                      category={a.category?.name}
-                      tags={a.tags}
-                      author={a.author}
-                    />
-                  </Link>
-                )}
-              </div>
-            ))}
-          </div>
+    <div className="space-y-10 pb-8">
+      {/* Header and first cards stay one block so `space-y-10` can't split them */}
+      {articles.length > 0 && (
+        <div>
+          <SectionHeader title={title} />
+          {renderArticles(articles)}
         </div>
       )}
 
       {/* CATEGORIES */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
         {categoriesLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden"
-            >
-              <div className="p-6 text-center flex flex-col items-center justify-center min-h-[140px]">
-                {/* Icon placeholder */}
-                <div className="w-12 h-12 shimmer rounded-full mb-3"></div>
+              <div
+                key={i}
+                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+              >
+                <div className="flex min-h-35 flex-col items-center justify-center p-6 text-center">
+                  {/* Icon placeholder */}
+                  <div className="mb-3 h-12 w-12 shimmer rounded-full"></div>
 
-                {/* Title placeholder */}
-                <div className="h-5 w-24 shimmer rounded mb-3"></div>
+                  {/* Title placeholder */}
+                  <div className="mb-3 h-5 w-24 shimmer rounded"></div>
 
-                {/* Count and dot placeholder */}
-                <div className="flex items-center justify-center gap-2 mt-auto">
-                  <div className="w-2 h-2 shimmer rounded-full"></div>
-                  <div className="h-4 w-16 shimmer rounded"></div>
+                  {/* Count and dot placeholder */}
+                  <div className="mt-auto flex items-center justify-center gap-2">
+                    <div className="h-2 w-2 shimmer rounded-full"></div>
+                    <div className="h-4 w-16 shimmer rounded"></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ))
           : categories.map((c) => (
-            <Link key={c._id} href={`/${c.slug || c._id}`}>
-              <CategoryCard {...c} />
-            </Link>
-          ))}
+              <Link
+                key={c._id}
+                href={`/${c.slug || c._id}`}
+                className="block h-full"
+              >
+                <CategoryCard {...c} />
+              </Link>
+            ))}
       </div>
-
-      {/* LOAD MORE */}
-      {hasMore && (
-        <div className="flex justify-center py-4">
-          <Button
-            onPress={loadMore}
-            variant="bordered"
-            isLoading={isLoadingMore}
-          >
-            {isLoadingMore ? "Loading..." : "Load More Articles"}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

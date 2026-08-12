@@ -1,66 +1,66 @@
 "use client";
 import Header from "../Components/Header";
-import SectionHeader from "./SectionHeader";
-import NewsGrid from "./NewsGrid";
+import FeaturedNews from "./FeaturedNews";
+import TrendingLiveRow from "./TrendingLiveRow";
+import MoreNewsSection from "./MoreNewsSection";
 import Footer from "../Components/Footer";
 import Layout from "./HomeLayout";
 import { Button, HeroUIProvider } from "@heroui/react";
-import { useState } from "react";
-import { serverGetApi, fetchHomeArticles } from "../utils/serverApi";
+import { useCallback, useState } from "react";
+import { fetchHomeArticles } from "../utils/serverApi";
 import { ToastProvider } from "@heroui/toast";
 import HomePageShimmer from "../Components/Shimmer/HomePageShimmer";
-import NewsGridShimmer from "../Components/Shimmer/NewsGridShimmer";
-import { LiveStreamPlayer } from "../Components/LiveStreamPlayer";
 import BreakingNewsTicker from "../Components/BreakingNewsTicker";
 
-export default function HomePageClient({ 
-  initialData, 
+export default function HomePageClient({
+  initialData,
   rootCategories = [],
   allCategories = []
 }) {
+  // Page 1 — everything above the "और खबरें" feed
   const [breakingNews, setBreakingNews] = useState(initialData?.breakingNews || []);
   const [featuredArticle, setFeaturedArticle] = useState(initialData?.featuredArticle || null);
   const [topStory, setTopStory] = useState(initialData?.topStory || []);
   const [regularArticles, setRegularArticles] = useState(initialData?.regularArticles || []);
   const [trendingArticles, setTrendingArticles] = useState(initialData?.trendingArticles || []);
-  const [pagination, setPagination] = useState(initialData?.pagination || null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [liveVideoId, setLiveVideoId] = useState(initialData?.liveVideoId || "");
 
-  const fetchArticles = async (page = 1) => {
-    try {
-      if (page === 1) {
-        setLoading(true);
-      }
+  // Page 2+ — the full-width feed below the three-column layout
+  const [moreArticles, setMoreArticles] = useState([]);
+  const [morePage, setMorePage] = useState(1);
+  const [moreLoading, setMoreLoading] = useState(false);
+  const [moreError, setMoreError] = useState(null);
+  const [moreHasMore, setMoreHasMore] = useState(
+    Boolean(initialData?.pagination?.hasMore)
+  );
 
-      const response = await fetchHomeArticles(page, 10);
+  const fetchArticles = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetchHomeArticles(1);
 
       if (response.success) {
         const { breakingNews: breaking, center, trending, liveVideoId } = response.data;
 
         setBreakingNews(breaking || []);
-        
-        if (liveVideoId) {
-          setLiveVideoId(liveVideoId);
-        }
+
+        // Assign directly so clearing it in settings also hides the player
+        setLiveVideoId(liveVideoId || "");
 
         if (center) {
           setFeaturedArticle(center.featured);
           setTopStory(center.topStory);
+          setRegularArticles(center.regularArticles || []);
 
-          if (page === 1) {
-            setRegularArticles(center.regularArticles || []);
-          } else {
-            setRegularArticles((prev) => [
-              ...prev,
-              ...(center.regularArticles || []),
-            ]);
-          }
-
-          setPagination(center.pagination);
-          setCurrentPage(page);
+          // Page 1 was refetched, so the feed below starts over too
+          setMoreArticles([]);
+          setMorePage(1);
+          setMoreError(null);
+          setMoreHasMore(Boolean(center.pagination?.hasMore));
         }
 
         setTrendingArticles(trending || []);
@@ -75,21 +75,44 @@ export default function HomePageClient({
     }
   };
 
-  const loadMoreArticles = () => {
-    if (pagination?.hasMore && !loading) {
-      fetchArticles(currentPage + 1);
+  const loadMoreNews = useCallback(async () => {
+    // `moreLoading` guards against a double click firing two requests
+    if (moreLoading || !moreHasMore) return;
+
+    const nextPage = morePage + 1;
+
+    try {
+      setMoreLoading(true);
+      setMoreError(null);
+
+      const response = await fetchHomeArticles(nextPage);
+
+      if (response.success) {
+        const center = response.data?.center;
+
+        setMoreArticles((prev) => [...prev, ...(center?.regularArticles || [])]);
+        setMoreHasMore(Boolean(center?.pagination?.hasMore));
+        setMorePage(nextPage);
+      } else {
+        setMoreError(response.message || "Failed to load more articles");
+      }
+    } catch (error) {
+      console.error("Error loading more articles:", error);
+      setMoreError("An error occurred while loading more articles");
+    } finally {
+      setMoreLoading(false);
     }
-  };
+  }, [moreLoading, moreHasMore, morePage]);
 
   return (
     <HeroUIProvider>
       <ToastProvider />
-      <Header 
+      <Header
         initialRootCategories={rootCategories}
         initialAllCategories={allCategories}
       />
       <main>
-        {loading && currentPage === 1 ? (
+        {loading ? (
           <HomePageShimmer />
         ) : (
           <>
@@ -98,33 +121,44 @@ export default function HomePageClient({
               <BreakingNewsTicker breakingNews={breakingNews} />
             )}
 
-            {featuredArticle?.length > 0 && (
-              <section className="container mx-auto px-4 py-8">
-                <SectionHeader title="प्रमुख समाचार" />
-                {error ? (
+            {featuredArticle?.length > 0 &&
+              (error ? (
+                <section className="container mx-auto px-4 py-8">
                   <div className="text-center py-12">
                     <p className="text-red-600 mb-4">{error}</p>
-                    <Button onClick={() => fetchArticles(1)} variant="bordered">
+                    <Button onPress={fetchArticles} variant="bordered">
                       Retry
                     </Button>
                   </div>
-                ) : (
-                  <NewsGrid articles={featuredArticle?.slice(0, 6)} />
-                )}
-              </section>
-            )}
+                </section>
+              ) : (
+                <FeaturedNews articles={featuredArticle?.slice(0, 6)} />
+              ))}
 
-            {!loading && !error && (
+            {!error && (
               <Layout
                 breakingNews={breakingNews}
-                featuredArticle={featuredArticle}
                 topStory={topStory}
                 regularArticles={regularArticles}
+              />
+            )}
+
+            {/* Trending + live TV, full width above the "और खबरें" feed */}
+            {!error && (
+              <TrendingLiveRow
                 trendingArticles={trendingArticles}
                 liveVideoId={liveVideoId}
-                loadMore={loadMoreArticles}
-                hasMore={pagination?.hasMore}
-                isLoadingMore={loading && currentPage > 1}
+              />
+            )}
+
+            {/* Full-width feed: page 2 onwards, no sticky side panels */}
+            {!error && (
+              <MoreNewsSection
+                articles={moreArticles}
+                hasMore={moreHasMore}
+                isLoading={moreLoading}
+                error={moreError}
+                onLoadMore={loadMoreNews}
               />
             )}
           </>

@@ -5,6 +5,7 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../utils/cloudinary.js";
+import { buildYouTubeUrl, buildYouTubeEmbedUrl } from "../utils/youtube.js";
 import { transliterate } from "transliteration";
 
 export const createArticle = async (req, res) => {
@@ -330,7 +331,8 @@ const getHomePageData = async (req, res) => {
       .sort({ publishDate: -1 })
       .limit(5);
 
-    // Fetch trending articles (right panel)
+    // Fetch trending articles (full-width row above the "more news" feed,
+    // laid out as a 3x3 grid)
     const trendingArticles = await Article.find({
       status: 1,
       isTrending: true,
@@ -341,7 +343,7 @@ const getHomePageData = async (req, res) => {
     })
       .populate("category", "name slug parent level")
       .sort({ publishDate: -1 })
-      .limit(5);
+      .limit(9);
 
     // Get IDs to exclude from regular articles
     const featuredArticleIds = featuredArticle?.map((article) => article._id);
@@ -403,6 +405,8 @@ const getHomePageData = async (req, res) => {
         },
         trending: formattedTrending,
         liveVideoId: settings.liveVideoId || "",
+        liveVideoUrl: settings.liveVideoUrl || buildYouTubeUrl(settings.liveVideoId),
+        liveVideoEmbedUrl: buildYouTubeEmbedUrl(settings.liveVideoId),
       },
     });
   } catch (error) {

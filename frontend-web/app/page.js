@@ -24,7 +24,7 @@ function formatArticleDates(articles) {
 export default async function Page() {
   // Fetch initial data on the server
   const [response, rootCategoriesResponse, allCategoriesResponse] = await Promise.all([
-    fetchHomeArticles(1, 10),
+    fetchHomeArticles(1),
     fetchRootCategories(),
     fetchAllCategoriesFlat(),
   ]);

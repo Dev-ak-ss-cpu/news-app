@@ -120,9 +120,26 @@ export async function fetchRelatedCategories(currentCategoryId, limit = 10) {
 }
 
 /**
+ * The middle column on page 1 renders top stories followed by the paginated
+ * feed, and should come to this many cards in total.
+ */
+const MIDDLE_COLUMN_CARDS = 10;
+
+/** Matches the top story `.limit(5)` in the backend's home handler. */
+const TOP_STORY_LIMIT = 5;
+
+/**
+ * Articles per page in the home feed — the remainder of the middle column once
+ * top stories have taken their slots. The backend derives its offset as
+ * `(page - 1) * limit`, so page 1 (middle column) and pages 2+ (the grid below)
+ * must share one value or articles fall through the gap between them.
+ */
+export const HOME_PAGE_SIZE = MIDDLE_COLUMN_CARDS - TOP_STORY_LIMIT;
+
+/**
  * Fetch home page articles server-side
  */
-export async function fetchHomeArticles(page = 1, limit = 10) {
+export async function fetchHomeArticles(page = 1, limit = HOME_PAGE_SIZE) {
   return await serverGetApi('/api/articles', {
     home: 'true',
     page: page.toString(),
