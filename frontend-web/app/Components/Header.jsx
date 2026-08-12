@@ -429,12 +429,45 @@ export default function Header({
   // Get mobile category tree
   const mobileCategoryTree = buildCategoryTree();
 
+  // Live stream, shown only while one is configured in admin settings
+  const [liveStream, setLiveStream] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLiveStream = async () => {
+      try {
+        const res = await genericGetApi("/api/settings");
+        if (cancelled) return;
+
+        const videoId = res?.data?.liveVideoId;
+        if (res?.success && videoId) {
+          setLiveStream({
+            id: videoId,
+            url:
+              res.data.liveVideoUrl ||
+              `https://www.youtube.com/watch?v=${videoId}`,
+          });
+        } else {
+          setLiveStream(null);
+        }
+      } catch (e) {
+        console.error("Error fetching live stream:", e);
+      }
+    };
+
+    fetchLiveStream();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Social media links
   const socialLinks = [
-    { Icon: Twitter, url: "https://x.com/Jkkhabarnow1/status/1966785367316586971?t=ols7eTDRQgRuzQrtJsL1nw&s=08", name: "Twitter" },
-    { Icon: Facebook, url: "https://www.facebook.com/share/v/1NUL7n5aMU/", name: "Facebook" },
-    { Icon: Instagram, url: "https://www.instagram.com/reel/DRJ9IZGj0RU/?igsh=MXdweWdnZDg3eHdkNA==", name: "Instagram" },
-    { Icon: Youtube, url: "https://youtu.be/6Vo6Ol24Euk?si=2uETIqiaZIFbt2a4", name: "YouTube" },
+    { Icon: Twitter, url: "https://x.com/Jkkhabarnow1", name: "Twitter" },
+    { Icon: Facebook, url: "https://www.facebook.com/Jkkhabarnow/reels/", name: "Facebook" },
+    { Icon: Instagram, url: "https://www.instagram.com/jkkhabarnow", name: "Instagram" },
+    { Icon: Youtube, url: "https://www.youtube.com/@jkkhabarnow", name: "YouTube" },
   ];
 
   useEffect(() => {
@@ -543,20 +576,41 @@ export default function Header({
             </a>
           </div>
 
-          {/* Social Media Links */}
-          <div className="flex items-center space-x-1">
-            {socialLinks.map((social, i) => (
+          {/* Live stream + Social Media Links */}
+          <div className="flex items-center gap-2">
+            {liveStream && (
               <a
-                key={i}
-                href={social.url}
+                href={liveStream.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={social.name}
-                className="p-1.5 hover:bg-[#1a365d] rounded-md transition-colors"
+                aria-label="YouTube पर लाइव देखें"
+                className="flex items-center gap-1.5 rounded-full bg-red-600 py-1 pl-2 pr-2.5 transition-colors hover:bg-red-700"
               >
-                <social.Icon size={16} className="text-white" />
+                <Youtube size={14} className="text-white" />
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white"></span>
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white">
+                  Live
+                </span>
               </a>
-            ))}
+            )}
+
+            <div className="flex items-center space-x-1">
+              {socialLinks.map((social, i) => (
+                <a
+                  key={i}
+                  href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.name}
+                  className="p-1.5 hover:bg-[#1a365d] rounded-md transition-colors"
+                >
+                  <social.Icon size={16} className="text-white" />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>

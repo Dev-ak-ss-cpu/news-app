@@ -1,19 +1,31 @@
 import { useEffect, useRef, useState, useId } from "react";
+import { getYouTubeId } from "../Helper";
 
-export function LiveStreamPlayer({ videoId, small = false }) {
+export function LiveStreamPlayer({ videoId, videoUrl, small = false }) {
   const playerRef = useRef(null);
   const [isLive, setIsLive] = useState(true);
-  
+
+  // Accepts either a bare video ID or any full YouTube link
+  const resolvedId = getYouTubeId(videoUrl || videoId);
+
   // Use React's useId() for stable, unique IDs that match between server and client
   const reactId = useId();
-  const uniqueId = `livePlayer-${videoId}-${reactId.replace(/:/g, '-')}`;
+  const uniqueId = `livePlayer-${resolvedId}-${reactId.replace(/:/g, '-')}`;
+
+  // A new stream starts out live again
+  useEffect(() => {
+    setIsLive(true);
+  }, [resolvedId]);
 
   useEffect(() => {
+    if (!resolvedId) return;
+
     function createPlayer() {
       if (!window.YT || !window.YT.Player) return;
+      if (!document.getElementById(uniqueId)) return;
 
       playerRef.current = new window.YT.Player(uniqueId, {
-        videoId,
+        videoId: resolvedId,
         playerVars: { autoplay: 1, mute: 1 },
         events: {
           onStateChange: (event) => {
@@ -29,7 +41,7 @@ export function LiveStreamPlayer({ videoId, small = false }) {
     // --- FIX: API loaded already? Initialize right away ---
     if (window.YT && window.YT.Player) {
       createPlayer();
-      return;
+      return () => destroyPlayer();
     }
 
     // --- FIX: Support multiple pending components ---
@@ -51,7 +63,24 @@ export function LiveStreamPlayer({ videoId, small = false }) {
         window._ytReadyCallbacks.forEach((cb) => cb());
       };
     }
-  }, [videoId, uniqueId]);
+
+    // Drop the queued callback and player when the stream changes or unmounts
+    return () => {
+      const queue = window._ytReadyCallbacks || [];
+      const index = queue.indexOf(createPlayer);
+      if (index > -1) queue.splice(index, 1);
+      destroyPlayer();
+    };
+
+    function destroyPlayer() {
+      if (playerRef.current?.destroy) {
+        playerRef.current.destroy();
+      }
+      playerRef.current = null;
+    }
+  }, [resolvedId, uniqueId]);
+
+  if (!resolvedId) return null;
 
   return (
     <div
