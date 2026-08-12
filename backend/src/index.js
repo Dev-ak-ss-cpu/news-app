@@ -7,6 +7,7 @@ import categoryRoutes from "./routes/category.routes.js";
 import articleRoutes from "./routes/article.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
+import healthRoutes from "./routes/health.routes.js";
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
 MongoDB();
 
+app.use("/api/health", healthRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/articles", articleRoutes);
 app.use("/api/auth", authRoutes);

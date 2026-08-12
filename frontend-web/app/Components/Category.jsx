@@ -1,18 +1,18 @@
-import { Card, CardBody } from "@heroui/react";
-
 export default function CategoryCard({ name, count, color, icon }) {
   return (
-    <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer rounded-xl overflow-hidden">
-      <CardBody className="p-6 text-center flex flex-col items-center justify-center min-h-[140px]">
-        <div className="text-4xl mb-3">{icon}</div>
-        <h3 className="font-bold text-gray-900 mb-3 text-base">{name}</h3>
-        <div className="flex items-center justify-center gap-2 mt-auto">
-          <div className={`w-2 h-2 rounded-full ${color}`}></div>
-          <span className="text-sm text-gray-600 font-medium">
-            {count} खबरें
-          </span>
-        </div>
-      </CardBody>
-    </Card>
+    <div className="group flex h-full min-h-35 cursor-pointer flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-red-200 hover:shadow-lg">
+      <div className="mb-3 text-4xl transition-transform duration-300 group-hover:scale-110">
+        {icon}
+      </div>
+      <h3 className="mb-3 text-base font-bold text-gray-900 transition-colors group-hover:text-red-700">
+        {name}
+      </h3>
+      <div className="mt-auto flex items-center justify-center gap-2">
+        <span className={`h-2 w-2 rounded-full ${color}`}></span>
+        <span className="text-sm font-medium text-gray-600">
+          {count} खबरें
+        </span>
+      </div>
+    </div>
   );
 }
