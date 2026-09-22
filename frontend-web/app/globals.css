@@ -115,3 +115,25 @@ iframe.skiptranslate {
 .animate-scroll:hover {
   animation-play-state: paused;
 }
+
+/* Read aloud: word being spoken right now.
+   .raw-html * { all: revert !important } resets every tag inside article
+   content, so these rules need the extra specificity to survive it. */
+.tts-word {
+    scroll-margin-top: 6rem !important;
+    scroll-margin-bottom: 6rem !important;
+}
+
+.tts-word.tts-speaking {
+    background-color: #facc15 !important;
+    color: #111827 !important;
+    border-radius: 0.2rem !important;
+    box-shadow: 0 0 0 2px #facc15 !important;
+}
+
+@media print {
+    .tts-word.tts-speaking {
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
+}

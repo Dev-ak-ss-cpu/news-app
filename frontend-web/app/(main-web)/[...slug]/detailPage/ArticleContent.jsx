@@ -2,6 +2,8 @@
 import { Card, CardBody, Chip } from '@heroui/react';
 import { Calendar, User, MapPin, Eye, Clock } from 'lucide-react';
 import { getYouTubeId } from '@/app/Helper';
+import { useRef } from 'react';
+import ArticleReadAloud from './ArticleReadAloud';
 
 // YouTube Video Component
 const YouTubeEmbed = ({ videoUrl, title }) => {
@@ -26,6 +28,11 @@ const YouTubeEmbed = ({ videoUrl, title }) => {
 export default function ArticleContent({ article }) {
     // Use provided article data or fallback to mock data
     const articleData = article || {}
+
+    // Read aloud walks these blocks, in this order, word by word
+    const titleRef = useRef(null);
+    const excerptRef = useRef(null);
+    const contentRef = useRef(null);
 
     // Format date if it exists
     const formattedDate = articleData.publishDate
@@ -71,7 +78,7 @@ export default function ArticleContent({ article }) {
                                 </Chip>
 
                                 {/* Article Title */}
-                                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight font-serif">
+                                <h1 ref={titleRef} className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight font-serif">
                                     {articleData.title}
                                 </h1>
                             </div>
@@ -109,10 +116,16 @@ export default function ArticleContent({ article }) {
                             )}
                         </div>
 
+                        {/* Listen to this article, word by word */}
+                        <ArticleReadAloud
+                            sources={[titleRef, excerptRef, contentRef]}
+                            resetKey={articleData._id || articleData.id || articleData.slug || articleData.title}
+                        />
+
                         {/* Article Excerpt */}
                         {articleData.excerpt && (
-                            <div className="bg-blue-50 border-l-4 border-blue-500 pl-3 sm:pl-4 py-2 sm:py-3 rounded-r-lg mb-4 sm:mb-6">
-                                <p className="text-base sm:text-lg text-gray-800 leading-relaxed font-medium">
+                            <div className="bg-blue-50 border-l-4 border-blue-500 pl-3 sm:pl-4 py-2 sm:py-3 rounded-r-lg mt-4 sm:mt-6 mb-4 sm:mb-6">
+                                <p ref={excerptRef} className="text-base sm:text-lg text-gray-800 leading-relaxed font-medium">
                                     {articleData.excerpt}
                                 </p>
                             </div>
@@ -144,7 +157,7 @@ export default function ArticleContent({ article }) {
                     {/* <AdSection title="Recommended For You" className="my-8" /> */}
 
                     {/* Article Content */}
-                    <div className="prose prose-sm sm:prose-base md:prose-lg max-w-none text-gray-800 leading-relaxed">
+                    <div ref={contentRef} className="prose prose-sm sm:prose-base md:prose-lg max-w-none text-gray-800 leading-relaxed">
                         {articleData.content ? (
                             <div
                                 className="raw-html space-y-3 sm:space-y-4 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_p]:text-sm sm:[&_p]:text-base [&_h1]:text-xl sm:[&_h1]:text-2xl [&_h2]:text-lg sm:[&_h2]:text-xl [&_h3]:text-base sm:[&_h3]:text-lg"
